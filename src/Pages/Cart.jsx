@@ -6,11 +6,17 @@ import { MdDelete, MdAdd, MdLocationOn, MdCheck, MdClose, MdLocalShipping, MdCre
 import { FaPhoneAlt, FaShoppingCart, FaRupeeSign } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { db } from "../lib/firebase";
-import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, getDocs, onSnapshot } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc, query, where, getDocs, onSnapshot, updateDoc, increment, runTransaction } from "firebase/firestore";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
+import { MdAccountBalanceWallet, MdOutlineRemoveCircleOutline } from "react-icons/md";
+import axios from "axios";
+import { generateInvoice } from "../utils/invoiceGenerator";
 
 const Cart = () => {
+
+    
+
   const { cartItems, removeFromCart, updateQty, clearCart } = useCart();
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -35,6 +41,12 @@ const Cart = () => {
   const [checkingPin, setCheckingPin] = useState(false);
   const [paymentType, setPaymentType] = useState("cod");
 
+  // Wallet State
+  const [userWalletBalance, setUserWalletBalance] = useState(0);
+  const [walletAmountToUse, setWalletAmountToUse] = useState(0);
+  const [appliedWalletAmount, setAppliedWalletAmount] = useState(0);
+  const [isUsingWallet, setIsUsingWallet] = useState(false);
+
   // --- 1. Fetch Addresses ---
   useEffect(() => {
     if (!currentUser) return;
@@ -42,12 +54,25 @@ const Cart = () => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setSavedAddresses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
-    return unsubscribe;
+
+    // Fetch Wallet Balance
+    const userRef = doc(db, "users", currentUser.uid);
+    const unsubscribeWallet = onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setUserWalletBalance(docSnap.data().walletBalance || 0);
+      }
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeWallet();
+    };
   }, [currentUser]);
 
   // --- 2. Calculate Totals ---
   const subtotal = cartItems.reduce((sum, item) => sum + Number(item.price) * Number(item.qty), 0);
-  const total = subtotal + shippingCharge;
+  const totalBeforeWallet = subtotal + shippingCharge;
+  const total = totalBeforeWallet - appliedWalletAmount;
 
   // --- 3. Handlers ---
   const handleSaveAddress = async (e) => {
@@ -103,42 +128,201 @@ const Cart = () => {
   };
 
   const handlePlaceOrder = async () => {
-      if (!currentUser) return;
-      if (!selectedAddressId || !isServiceable) {
-          toast.error("Please select a valid delivery address.");
-          return;
-      }
-      const addrObj = savedAddresses.find(a => a.id === selectedAddressId);
-      if(!addrObj) return;
+    if (!currentUser) return;
+    if (!selectedAddressId || !isServiceable) {
+      toast.error("Please select a valid delivery address.");
+      return;
+    }
+    const addrObj = savedAddresses.find((a) => a.id === selectedAddressId);
+    if (!addrObj) return;
 
+    if (paymentType === "cod") {
+      // Robust COD Logic with Transactions
       try {
-          const userDoc = await getDoc(doc(db, "users", currentUser.uid));
-          const userData = userDoc.exists() ? userDoc.data() : {};
-          const orderData = {
+        const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+        const userData = userDoc.exists() ? userDoc.data() : {};
+
+        const baseOrderData = {
+          userId: currentUser.uid,
+          userName: currentUser.displayName || currentUser.email,
+          userEmail: currentUser.email,
+          userPhone: addrObj.phone || userData.phone || "N/A",
+          shippingAddress: addrObj,
+          products: cartItems,
+          subtotal: subtotal,
+          shippingCharge: shippingCharge,
+          walletAmountUsed: appliedWalletAmount,
+          totalAmount: total,
+          status: "pending",
+          paymentStatus: "pending",
+          paymentMethod: "cod",
+        };
+
+        await runTransaction(db, async (transaction) => {
+          // 1. If wallet is used, double check balance and deduct
+          if (appliedWalletAmount > 0) {
+            const userRef = doc(db, "users", currentUser.uid);
+            const userSnap = await transaction.get(userRef);
+            if (!userSnap.exists()) throw new Error("User document not found");
+            
+            const currentBalance = Number(userSnap.data().walletBalance) || 0;
+            if (currentBalance < appliedWalletAmount) {
+              throw new Error(`Insufficient wallet balance for COD. Required: ${appliedWalletAmount}, Available: ${currentBalance}`);
+            }
+
+            transaction.update(userRef, {
+              walletBalance: increment(-appliedWalletAmount)
+            });
+
+            // Record transaction
+            const transRef = doc(collection(db, "wallet_transactions"));
+            transaction.set(transRef, {
               userId: currentUser.uid,
-              userName: currentUser.displayName || currentUser.email,
-              userEmail: currentUser.email,
-              userPhone: addrObj.phone || userData.phone || 'N/A',
-              shippingAddress: addrObj,
-              products: cartItems,
-              subtotal: subtotal,
-              shippingCharge: shippingCharge,
-              totalAmount: total,
-              status: "pending",
-              paymentMethod: paymentType,
-              createdAt: serverTimestamp(),
-          };
-          await addDoc(collection(db, "orders"), orderData);
-          await clearCart();
-          toast.success("Order Placed Successfully!");
-          setIsCheckoutOpen(false);
-          setCheckoutStep(1); // Reset
-          navigate("/profile");
+              amount: appliedWalletAmount,
+              type: "debit",
+              description: `Order Payment (Method: COD)`,
+              date: serverTimestamp(),
+            });
+          }
+
+          // 2. Create Order
+          const orderRef = doc(collection(db, "orders"));
+          transaction.set(orderRef, {
+            ...baseOrderData,
+            createdAt: serverTimestamp()
+          });
+        });
+
+        await clearCart();
+        toast.success("Order Placed Successfully!");
+        setAppliedWalletAmount(0);
+        setIsCheckoutOpen(false);
+        setCheckoutStep(1);
+        navigate("/profile");
       } catch (error) {
-          console.error("Order Error:", error);
-          toast.error("Failed to place order.");
+        console.error("COD Order Error:", error);
+        toast.error(error.message || "Failed to place order.");
       }
+    } else {
+      // Razorpay Logic (Secure Production Flow)
+      try {
+        // 1. Create secure order on backend with price verification
+        const response = await axios.post("http://localhost:5000/api/payments/create-order", {
+          userId: currentUser.uid,
+          items: cartItems.map(item => ({ id: item.id, qty: item.qty })),
+          walletAmountUsed: appliedWalletAmount,
+          shippingCharge: shippingCharge
+        });
+
+        const rzpOrder = response.data;
+
+        const options = {
+          key: "rzp_test_S9Fwb7DWGkJ80i", 
+          amount: rzpOrder.amount,
+          currency: rzpOrder.currency,
+          name: "Holstein Nutrition",
+          description: "Premium Cattle Feed",
+          order_id: rzpOrder.id,
+          handler: async (response) => {
+            try {
+              // 1. Prepare Order Data for Backend
+              const userDoc = await getDoc(doc(db, "users", currentUser.uid));
+              const userData = userDoc.exists() ? userDoc.data() : {};
+
+              const baseOrderData = {
+                userId: currentUser.uid,
+                userName: currentUser.displayName || currentUser.email,
+                userEmail: currentUser.email,
+                userPhone: addrObj.phone || userData.phone || "N/A",
+                shippingAddress: addrObj,
+                products: cartItems,
+                subtotal: subtotal,
+                shippingCharge: shippingCharge,
+                walletAmountUsed: rzpOrder.verifiedWalletUsage,
+                totalAmount: rzpOrder.verifiedTotal,
+                paymentMethod: "razorpay",
+              };
+
+              // 2. Verify payment and create order on backend
+              const verifyRes = await axios.post("http://localhost:5000/api/payments/verify", {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderData: baseOrderData
+              });
+
+              if (verifyRes.status === 200) {
+                const firestoreOrderId = verifyRes.data.orderId;
+                
+                // 3. Generate Invoice (using local data + backend ID)
+                try {
+                  generateInvoice({ id: firestoreOrderId, ...baseOrderData, totalAmount: rzpOrder.verifiedTotal });
+                } catch (invErr) {
+                  console.error("Invoice Generation Error:", invErr);
+                  // Don't block the whole flow if invoice fails
+                }
+
+                // 4. Cleanup & Redirect
+                await clearCart();
+                toast.success("Payment Successful!");
+                setAppliedWalletAmount(0);
+                setIsCheckoutOpen(false);
+                setCheckoutStep(1);
+                navigate("/order-success", { state: { orderId: firestoreOrderId, total: rzpOrder.verifiedTotal } });
+              }
+            } catch (err) {
+              console.error("Verification Catch Error:", err);
+              toast.error(err.response?.data?.message || "Payment verification failed. Please contact support if amount was deducted.");
+            }
+          },
+          prefill: {
+            name: currentUser.displayName,
+            email: currentUser.email,
+            contact: addrObj.phone
+          },
+          theme: {
+            color: "#3b82f6"
+          }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } catch (error) {
+        console.error("Razorpay Error:", error);
+        toast.error(error.response?.data?.message || "Failed to initiate payment");
+      }
+    }
   };
+
+  const handleApplyWallet = async () => {
+    const amount = Number(walletAmountToUse);
+    if (amount <= 0) {
+      toast.error("Enter a valid amount");
+      return;
+    }
+    if (amount > userWalletBalance) {
+      toast.error("Insufficient wallet balance");
+      return;
+    }
+    if (amount > totalBeforeWallet) {
+      toast.error("Amount exceeds total order value");
+      return;
+    }
+
+    // Only update UI state, avoid early Firestore deduction to prevent price mismatch in Razorpay
+    setAppliedWalletAmount(prev => prev + amount);
+    setWalletAmountToUse(0);
+    toast.success(`₹${amount} applied from wallet`);
+  };
+
+  const handleRemoveWallet = async () => {
+    // Only reset UI state
+    setAppliedWalletAmount(0);
+    toast.success("Wallet balance removed");
+  };
+
+  // Restoration Logic removed as deduction is now delayed until payment confirmation
+
 
   // --- 4. Empty State ---
   if (cartItems.length === 0) {
@@ -195,9 +379,16 @@ const Cart = () => {
           <h3 className="text-xl font-bold text-gray-800 mb-1">
             {item.title}
           </h3>
-          <p className="text-2xl font-bold text-blue-600">
-            ₹{item.price}
-          </p>
+          <div className="flex flex-col gap-1">
+            <p className="text-2xl font-bold text-blue-600">
+              ₹{(item.price * item.qty).toLocaleString()}
+            </p>
+            {item.qty > 1 && (
+              <p className="text-xs text-gray-400 font-medium">
+                ₹{item.price.toLocaleString()} per {item.Quantity}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Actions */}
@@ -319,6 +510,12 @@ const Cart = () => {
                                         {shippingCharge > 0 ? `₹${shippingCharge}` : (isServiceable ? "Free" : "Calculating...")}
                                     </span>
                                 </div>
+                                {appliedWalletAmount > 0 && (
+                                    <div className="flex justify-between text-emerald-600 font-medium">
+                                        <span>Wallet Applied</span>
+                                        <span>- ₹{appliedWalletAmount}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between text-2xl font-bold text-gray-900 pt-4 border-t border-gray-200 mt-4">
                                     <span>Total</span>
                                     <span>₹{total.toLocaleString()}</span>
@@ -405,9 +602,54 @@ const Cart = () => {
                             {/* STEP 2: PAYMENT */}
                             {checkoutStep === 2 && (
                                 <div className="animate-fade-in space-y-8">
-                                    <h2 className="text-2xl font-bold flex items-center gap-2">
-                                        <MdCreditCard className="text-green-500" /> Select Payment Method
-                                    </h2>
+                                    <div className="flex justify-between items-center">
+                                        <h2 className="text-2xl font-bold flex items-center gap-2">
+                                            <MdCreditCard className="text-green-500" /> Select Payment Method
+                                        </h2>
+                                        <div className="text-right">
+                                            <p className="text-xs text-gray-500">Wallet Balance</p>
+                                            <p className="text-sm font-bold text-gray-900">₹{(userWalletBalance - appliedWalletAmount).toLocaleString()}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Wallet Integration Section */}
+                                    <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <MdAccountBalanceWallet className="text-blue-500 text-xl" />
+                                            <span className="font-bold text-gray-800">Use Wallet Balance</span>
+                                        </div>
+                                        
+                                        {appliedWalletAmount > 0 ? (
+                                            <div className="flex items-center justify-between bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="text-sm font-bold text-blue-700">Applied: ₹{appliedWalletAmount}</div>
+                                                </div>
+                                                <button 
+                                                    onClick={handleRemoveWallet}
+                                                    className="text-red-500 hover:text-red-600 flex items-center gap-1 text-xs font-bold"
+                                                >
+                                                    <MdOutlineRemoveCircleOutline /> Remove
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="flex gap-2">
+                                                <input 
+                                                    type="number"
+                                                    placeholder="Enter amount"
+                                                    className="input-field flex-1"
+                                                    value={walletAmountToUse || ''}
+                                                    onChange={e => setWalletAmountToUse(e.target.value)}
+                                                />
+                                                <button 
+                                                    onClick={handleApplyWallet}
+                                                    className="px-6 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all"
+                                                >
+                                                    Apply
+                                                </button>
+                                            </div>
+                                        )}
+                                        <p className="text-[10px] text-gray-400">Available: ₹{userWalletBalance - appliedWalletAmount}</p>
+                                    </div>
 
                                     <div className="space-y-4">
                                         {['card', 'upi', 'cod'].map(method => (
@@ -427,7 +669,7 @@ const Cart = () => {
                                     </div>
 
                                     {/* Footer Action */}
-                                    <div className="absolute bottom-0 left-0 right-0 p-8 bg-white border-t">
+                                    <div className="relative bottom-0 left-0 right-0 p-8 bg-white border-t">
                                         <div className="flex justify-between items-center gap-4">
                                             <button onClick={() => setCheckoutStep(1)} className="text-gray-500 font-bold hover:text-black">Back</button>
                                             <button 

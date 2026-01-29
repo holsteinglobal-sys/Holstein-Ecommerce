@@ -21,6 +21,7 @@ const PriceSection = ({ product }) => {
     title,
     stock = "In Stock",
     delivery = "2-5 days",
+    Quantity 
   } = product;
 
   const discount = oldPrice
@@ -113,10 +114,10 @@ const PriceSection = ({ product }) => {
                  </button>
              </div>
              {checkStatus === 'available' && (
-                 <p className="text-sm text-green-600 mt-2 font-medium">✓ {shippingMsg}</p>
+                 <p className="text-sm text-green-500 mt-2 font-medium skeleton skeleton-text">✓ {shippingMsg}</p>
              )}
              {checkStatus === 'unavailable' && (
-                 <p className="text-sm text-red-500 mt-2 font-medium">✕ {shippingMsg}</p>
+                 <p className="text-sm text-red-500 mt-2 font-medium skeleton skeleton-text">✕ {shippingMsg}</p>
              )}
         </div>
 
@@ -126,7 +127,7 @@ const PriceSection = ({ product }) => {
 
           <div className="grid grid-cols-2 gap-y-2 text-gray-600">
             <span className="font-medium">Net Weight:</span>
-            <span>50 Kg</span>
+            <span>{ Quantity }</span>
 
             <span className="font-medium">Category:</span>
             <span>{product.category}</span>

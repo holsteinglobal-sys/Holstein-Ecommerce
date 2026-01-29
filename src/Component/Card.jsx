@@ -28,7 +28,7 @@ const Card = ({ id, image, title, description }) => {
           {/* Button does NOT trigger navigation */}
           <div className="card-actions justify-center mt-4">
             <button
-              className="btn btn-primary"
+              className="btn btn-primary  rounded-full"
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/product/${id}`);

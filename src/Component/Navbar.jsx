@@ -1,164 +1,164 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
-import ThemeToggle from "./ThemeToggle.jsx";
 import { useAuth } from "../context/AuthContext";
 import ProfileAvtar from "./ProfileAvtar.jsx";
-import Profile from "../Pages/Profile.jsx";
-import Product from "../Pages/HomeImage.jsx";
-import NotificationBell from "./NotificationBell.jsx";
+import { HiMenuAlt3, HiX } from "react-icons/hi";
+import { FaPhoneAlt } from "react-icons/fa";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { currentUser } = useAuth();
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const navLinks = [
+    { name: "Home", path: "/" },
+    { name: "About Us", path: "/about" },
+    { name: "Product", path: "/product" },
+    { name: "Blog", path: "/blog" },
+    { name: "Contact Us", path: "/contact" },
+  ];
+
   return (
-    <div className="navbar bg-base-200 shadow-md fixed top-0 z-50 w-full h-20 border-b">
-      <div className="flex items-center justify-between w-full px-2 md:px-100">
-        {/* LOGO */}
-        <Link to="/" className="flex items-center">
+    <nav className={`fixed top-0 left-0 w-full z-[100] transition-all duration-500 ${
+      scrolled 
+        ? "bg-white/80 backdrop-blur-lg shadow-lg py-3" 
+        : "bg-transparent py-5"
+    }`}>
+      <div className="max-w-[1440px] mx-auto px-6 md:px-12 flex items-center justify-between relative">
+        
+        {/* LEFT: LOGO */}
+        <Link to="/" className="relative z-10 flex items-center group">
           <img
             src="/public/image/holstein-logo.png"
             alt="Holstein Logo"
-            className="h-25 w-auto object-contain"
+            className="h-12 md:h-16 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
           />
         </Link>
 
-        {/* DESKTOP MENU */}
-        <div className="hidden md:flex">
-          <ul className="flex gap-10 font-semibold text-lg items-center">
-            {/* Menu Items */}
-            <li>
-              <NavLink
-                to="/"
-                className={({ isActive }) =>
-                  `transition-colors duration-300 ${
-                    isActive ? "text-blue-600" : "text-gray-700 hover:text-blue-500"
-                  }`
-                }
-              >
-                Home
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/about"
-                className={({ isActive }) =>
-                  `transition-colors duration-300 ${
-                    isActive ? "text-blue-600" : "text-gray-700 hover:text-blue-500"
-                  }`
-                }
-              >
-                About Us
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/product"
-                className={({ isActive }) =>
-                  `transition-colors duration-300 ${
-                    isActive ? "text-blue-600" : "text-gray-700 hover:text-blue-500"
-                  }`
-                }
-              >
-                Product
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/blog"
-                className={({ isActive }) =>
-                  `transition-colors duration-300 ${
-                    isActive ? "text-blue-600" : "text-gray-700 hover:text-blue-500"
-                  }`
-                }
-              >
-                Blog
-              </NavLink>
-            </li>
-            <li>
-              <NavLink
-                to="/contact"
-                className={({ isActive }) =>
-                  `transition-colors duration-300 ${
-                    isActive ? "text-blue-600" : "text-gray-700 hover:text-blue-500"
-                  }`
-                }
-              >
-                Contact Us
-              </NavLink>
-            </li>
+        {/* CENTER: DESKTOP MENU */}
+        <div className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center">
+          <ul className="flex gap-8 items-center">
+            {navLinks.map((link) => (
+              <li key={link.path}>
+                <NavLink
+                  to={link.path}
+                  className={({ isActive }) =>
+                    `text-sm font-bold uppercase tracking-widest transition-all duration-300 hover:text-primary relative group ${
+                      isActive ? "text-primary" : "text-gray-600"
+                    }`
+                  }
+                >
+                  {link.name}
+                  <span className={`absolute -bottom-2 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full active-link-indicator`}></span>
+                </NavLink>
+              </li>
+            ))}
+          </ul>
+        </div>
 
-            {/* User Section */}
-            <li className="flex items-center gap-3">
+        {/* RIGHT: USER SECTION */}
+        <div className="hidden lg:flex items-center gap-6 relative z-10">
+          {currentUser ? (
+            <div className="flex items-center gap-4 pl-6 border-l border-gray-200">
+              <span className="text-sm font-bold text-gray-700">
+                Hi, <span className="text-primary">{currentUser.displayName?.split(' ')[0]}</span>
+              </span>
+              <ProfileAvtar />
+            </div>
+          ) : (
+            <div className="flex items-center gap-4">
+              <Link
+                to="/login"
+                className="text-sm font-bold text-gray-700 hover:text-primary transition-colors"
+              >
+                Login
+              </Link>
+              <Link
+                to="/signup"
+                className="bg-primary hover:bg-primary/90 text-white px-6 py-2.5 rounded-full text-sm font-bold shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5"
+              >
+                Sign Up
+              </Link>
+            </div>
+          )}
+        </div>
+
+        {/* MOBILE MENU TOGGLE */}
+        <button
+          onClick={() => setOpen(!open)}
+          className="lg:hidden relative z-50 p-2 text-gray-700 hover:text-primary transition-colors"
+        >
+          {open ? <HiX size={32} /> : <HiMenuAlt3 size={32} />}
+        </button>
+
+        {/* MOBILE OVERLAY MENU */}
+        <div className={`fixed inset-0 bg-white z-40 transition-transform duration-500 lg:hidden ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}>
+          <div className="flex flex-col h-full pt-32 px-10">
+            <ul className="space-y-8 mb-12">
+              {navLinks.map((link) => (
+                <li key={link.path}>
+                  <Link 
+                    to={link.path} 
+                    onClick={() => setOpen(false)}
+                    className="text-4xl font-extrabold text-gray-900 hover:text-primary transition-colors"
+                  >
+                    {link.name}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            
+            <div className="pt-12 border-t border-gray-100 flex flex-col gap-6">
               {currentUser ? (
-                <>
-                  <span className="text-primary font-bold">
-                    Hi, {currentUser.displayName}
-                  </span>
-                  <NotificationBell />
+                <div className="flex items-center gap-4">
                   <ProfileAvtar />
-                </>
+                  <span className="text-xl font-bold text-gray-900">Account Settings</span>
+                </div>
               ) : (
                 <>
-                  <li>
-                    <NavLink
-                      to="/login"
-                      className="btn btn-sm btn-outline rounded-full border-blue-700 text-blue-700 text-base font-semibold hover:bg-blue-700 hover:text-white transition-all duration-300"
-                    >
-                      Login
-                    </NavLink>
-                  </li>
-                  <li>
-                    <NavLink
-                      to="/signup"
-                      className="btn btn-sm btn-primary rounded-full text-base font-semibold px-4 shadow-md hover:shadow-lg transition-all duration-300"
-                    >
-                      Sign Up
-                    </NavLink>
-                  </li>
+                  <Link 
+                    to="/login" 
+                    onClick={() => setOpen(false)}
+                    className="text-2xl font-bold text-gray-900"
+                  >
+                    Login
+                  </Link>
+                  <Link 
+                    to="/signup" 
+                    onClick={() => setOpen(false)}
+                    className="bg-primary text-white text-center py-4 rounded-2xl text-xl font-bold"
+                  >
+                    Get Started
+                  </Link>
                 </>
               )}
-            </li>
-          </ul>
-        </div>
-
-        {/* MOBILE MENU BUTTON */}
-        <div className="md:hidden">
-          <button
-            onClick={() => setOpen(!open)}
-            className={`btn btn-ghost text-2xl ${
-              open ? "text-primary" : "text-red-500"
-            }`}
-          >
-            ☰
-          </button>
+              <a href="tel:+9118002965555" className="text-primary font-black text-xl mt-4 inline-flex items-center gap-2">
+                <FaPhoneAlt className="" />  1800-296-5555
+              </a>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* MOBILE DROPDOWN */}
-      {open && (
-        <div className="absolute top-20 left-0 w-full bg-base-200 shadow-md md:hidden">
-          <ul className="flex flex-col gap-4 p-6 font-semibold text-lg">
-            <li><Link to="/" onClick={() => setOpen(false)}>Home</Link></li>
-            <li><Link to="/about" onClick={() => setOpen(false)}>About Us</Link></li>
-            <li><Link to="/product" onClick={() => setOpen(false)}>Services</Link></li>
-            <li><Link to="/blog" onClick={() => setOpen(false)}>Blog</Link></li>
-            <li><Link to="/contact" onClick={() => setOpen(false)}>Contact Us</Link></li>
-
-            {currentUser ? (
-              <li><Profile /></li>
-            ) : (
-              <>
-                <li><Link to="/login" onClick={() => setOpen(false)}>Login</Link></li>
-                <li><Link to="/signup" onClick={() => setOpen(false)}>Sign Up</Link></li>
-              </>
-            )}
-
-            <a href="tel:+911800-296-5555">📞 1800-296-5555</a>
-          </ul>
-        </div>
-      )}
-    </div>
+      
+      <style>{`
+        .active-link-indicator {
+          width: 0;
+        }
+        .active .active-link-indicator {
+          width: 100%;
+        }
+      `}</style>
+    </nav>
   );
 };
 

@@ -1,156 +1,94 @@
-import React from 'react'
+import React from 'react';
+import { FaQuoteLeft, FaStar } from 'react-icons/fa';
 
 const Testimonial = () => {
+  const testimonials = [
+    {
+      name: "Leslie Alexander",
+      role: "Dairy Farmer, Punjab",
+      content: "Holstein's cattle feed has significantly improved the milk yield of my cows. The scientific formula really makes a difference in their digestion and overall health.",
+      avatar: "https://cdn.rareblocks.xyz/collection/clarity/images/testimonial/4/avatar-male-1.png",
+      rating: 5
+    },
+    {
+      name: "Jacob Jones",
+      role: "Livestock Manager",
+      content: "Transitioning to Holstein was the best decision for our farm. The specialized feeding guide for different stages ensures our calves grow healthy and strong.",
+      avatar: "https://cdn.rareblocks.xyz/collection/clarity/images/testimonial/4/avatar-male-2.png",
+      rating: 5
+    },
+    {
+      name: "Arlene McCoy",
+      role: "Progressive Farmer",
+      content: "The support and quality Holstein provides are unparalleled. My livestock's immunity has visibly increased, and the results are consistent every season.",
+      avatar: "https://cdn.rareblocks.xyz/collection/clarity/images/testimonial/4/avatar-female-1.png",
+      rating: 5
+    }
+  ];
+
   return (
-    <div>
-    <section className="py-12  sm:py-16 lg:py-20">
-  <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-    <div className="flex flex-col items-center">
+    <section className="py-24 px-6 md:px-12  relative overflow-hidden">
+      {/* Decorative Blur */}
+      <div className="absolute top-0 right-0 w-96 h-96  rounded-full blur-3xl -mr-48 -mt-48"></div>
+      
+      <div className="max-w-7xl mx-auto relative z-10">
+        <div className="text-center mb-20">
+          <span className="inline-block px-4 py-1.5 mb-6 text-sm font-bold tracking-widest text-primary uppercase bg-primary/10 rounded-full">
+            Success Stories
+          </span>
+          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-6 leading-tight">
+            Our Happy Clients <span className="text-primary italic font-medium">Say About Us</span>
+          </h2>
+          <p className="max-w-2xl mx-auto text-gray-600 text-lg md:text-xl leading-relaxed">
+            Join thousands of successful farmers who have transformed their livestock productivity with Holstein's premium feed.
+          </p>
+        </div>
 
-      {/* Heading */}
-      <div className="text-center text-base-content">
-        <p className="text-lg font-medium opacity-70">
-          2,157 people have said how good Rareblocks
-        </p>
-        <h2 className="mt-4 text-3xl font-bold sm:text-4xl xl:text-5xl">
-          Our happy clients say about us
-        </h2>
-      </div>
-
-      {/* Link */}
-      {/* <div className="mt-8 text-center md:mt-16 md:order-3">
-        <a
-          href="#"
-          className="pb-2 text-base font-bold border-b-2 border-primary text-primary hover:opacity-80 transition"
-        >
-          Check all 2,157 reviews
-        </a>
-      </div> */}
-
-      {/* Cards */}
-      <div className="relative mt-10 md:mt-24 md:order-2">
-        <div className="relative grid max-w-lg grid-cols-1 gap-6 mx-auto md:max-w-none lg:gap-10 md:grid-cols-3">
-
-          {/* Card */}
-          <div className="flex flex-col overflow-hidden shadow-xl rounded-2xl bg-base-100">
-            <div className="flex flex-col justify-between flex-1 p-6 lg:p-8 text-base-content">
-
-              {/* Stars */}
-              <div className="flex gap-1 text-warning">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <svg key={i} className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          {testimonials.map((item, index) => (
+            <div 
+              key={index} 
+              className="group relative p-10 bg-white border border-gray-100 rounded-[40px] shadow-2xl shadow-gray-200/40 hover:shadow-primary/10 transition-all duration-500 hover:-translate-y-2 overflow-hidden"
+            >
+              {/* Quote Icon Accent */}
+              <div className="absolute top-8 right-10 text-6xl text-primary/5 group-hover:text-primary/10 transition-colors duration-500">
+                <FaQuoteLeft />
               </div>
 
-              {/* Quote */}
-              <blockquote className="mt-8">
-                <p className="text-lg leading-relaxed">
-                  “You made it so simple. My new site is so much faster and easier
-                  to work with than my old site.”
-                </p>
-              </blockquote>
+              <div className="relative z-10">
+                {/* Rating */}
+                <div className="flex gap-1 mb-8">
+                  {Array.from({ length: item.rating }).map((_, i) => (
+                    <FaStar key={i} className="text-amber-400 text-sm" />
+                  ))}
+                </div>
 
-              {/* Author */}
-              <div className="flex items-center mt-8">
-                <img
-                  className="w-11 h-11 rounded-full object-cover"
-                  src="https://cdn.rareblocks.xyz/collection/clarity/images/testimonial/4/avatar-male-1.png"
-                  alt=""
-                />
-                <div className="ml-4">
-                  <p className="text-base font-bold">Leslie Alexander</p>
-                  <p className="text-sm opacity-70">Freelance React Developer</p>
+                {/* Content */}
+                <blockquote className="mb-10">
+                  <p className="text-xl text-gray-700 leading-relaxed font-medium line-clamp-4 ">
+                    "{item.content}"
+                  </p>
+                </blockquote>
+
+                {/* Author */}
+                <div className="flex items-center gap-4 border-t border-gray-100 pt-8">
+                  <img
+                    className="w-14 h-14 rounded-2xl object-cover ring-4 ring-primary/5 group-hover:ring-primary/10 transition-all duration-500"
+                    src={item.avatar}
+                    alt={item.name}
+                  />
+                  <div>
+                    <p className="text-lg font-bold text-gray-900">{item.name}</p>
+                    <p className="text-sm font-medium text-gray-500">{item.role}</p>
+                  </div>
                 </div>
               </div>
- 
             </div>
-          </div>
-
-
-                              <div className="flex flex-col overflow-hidden shadow-xl rounded-2xl bg-base-100">
-            <div className="flex flex-col justify-between flex-1 p-6 lg:p-8 text-base-content">
-
-              {/* Stars */}
-              <div className="flex gap-1 text-warning">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <svg key={i} className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
-
-              {/* Quote */}
-              <blockquote className="mt-8">
-                <p className="text-lg leading-relaxed">
-                  “You made it so simple. My new site is so much faster and easier
-                  to work with than my old site.”
-                </p>
-              </blockquote>
-
-              {/* Author */}
-              <div className="flex items-center mt-8">
-                <img
-                  className="w-11 h-11 rounded-full object-cover"
-                  src="https://cdn.rareblocks.xyz/collection/clarity/images/testimonial/4/avatar-male-1.png"
-                  alt=""
-                />
-                <div className="ml-4">
-                  <p className="text-base font-bold">Leslie Alexander</p>
-                  <p className="text-sm opacity-70">Freelance React Developer</p>
-                </div>
-              </div>
- 
-            </div>
-          </div>
-
-                    <div className="flex flex-col overflow-hidden shadow-xl rounded-2xl bg-base-100">
-            <div className="flex flex-col justify-between flex-1 p-6 lg:p-8 text-base-content">
-
-              {/* Stars */}
-              <div className="flex gap-1 text-warning">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <svg key={i} className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                  </svg>
-                ))}
-              </div>
-
-              {/* Quote */}
-              <blockquote className="mt-8">
-                <p className="text-lg leading-relaxed">
-                  “You made it so simple. My new site is so much faster and easier
-                  to work with than my old site.”
-                </p>
-              </blockquote>
-
-              {/* Author */}
-              <div className="flex items-center mt-8">
-                <img
-                  className="w-11 h-11 rounded-full object-cover"
-                  src="https://cdn.rareblocks.xyz/collection/clarity/images/testimonial/4/avatar-male-1.png"
-                  alt=""
-                />
-                <div className="ml-4">
-                  <p className="text-base font-bold">Leslie Alexander</p>
-                  <p className="text-sm opacity-70">Freelance React Developer</p>
-                </div>
-              </div>
- 
-            </div>
-          </div>
-          {/* Duplicate card → reuse same structure for others */}
+          ))}
         </div>
       </div>
+    </section>
+  );
+};
 
-    </div>
-  </div>
-</section>
-
-
-    </div>
-  )
-}
-
-export default Testimonial
+export default Testimonial;

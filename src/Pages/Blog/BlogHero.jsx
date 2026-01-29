@@ -2,7 +2,8 @@ import React from 'react';
 
 const BlogHero = () => {
   return (
-    <section className="py-16 px-8 max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between">
+    <div className='min-h-screen flex items-center px-6 md:px-12 relative overflow-hidden'>
+    <section className="mb-55 max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between">
       {/* Left Content */}
       <div className="md:w-1/2 space-y-6">
         <h1 className="text-5xl md:text-6xl font-bold text-gray-900 tracking-tight">
@@ -42,6 +43,7 @@ const BlogHero = () => {
   </div>
 </div>
     </section>
+    </div>
   );
 };
 

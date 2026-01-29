@@ -6,6 +6,7 @@ import {
   deleteBlog,
 } from "../../services/adminService";
 import toast from "react-hot-toast";
+import { getDirectGDriveUrl } from "../../utils/googleDriveConverter";
 
 const AdminBlogs = () => {
   const [blogs, setBlogs] = useState([]);
@@ -60,11 +61,16 @@ const AdminBlogs = () => {
     e.preventDefault();
 
     try {
+      const processedFormData = {
+        ...formData,
+        image: getDirectGDriveUrl(formData.image)
+      };
+
       if (editingBlog) {
-        await updateBlog(editingBlog.id, formData);
+        await updateBlog(editingBlog.id, processedFormData);
         toast.success("Blog updated");
       } else {
-        await addBlog(formData);
+        await addBlog(processedFormData);
         toast.success("Blog added");
       }
 
@@ -105,6 +111,16 @@ const AdminBlogs = () => {
   if (loading) {
     return <div className="p-6 text-center">Loading blogs...</div>;
   }
+
+
+  const convertDriveUrl = (url) => {
+  const match = url.match(/\/d\/([^/]+)\//);
+  if (!match) return url; // not a drive link, return as-is
+
+  const fileId = match[1];
+  return `https://drive.google.com/uc?export=view&id=${fileId}`;
+};
+
 
   return (
     <div className="p-6">
@@ -157,7 +173,7 @@ const AdminBlogs = () => {
             required
           />
 
-          <input
+          {/* <input
             placeholder="Image URL"
             value={formData.image}
             onChange={(e) =>
@@ -165,7 +181,20 @@ const AdminBlogs = () => {
             }
             className="input input-bordered w-full"
             required
-          />
+          /> */}
+
+         <input
+  placeholder="Image URL"
+  value={formData.image}
+  onChange={(e) =>
+    setFormData({ ...formData, image: e.target.value })
+  }
+  className="input input-bordered w-full"
+  required
+/>
+
+
+
 
           <input
             placeholder="Read time (e.g. 5 min read)"

@@ -8,8 +8,9 @@ export const products = [
       "Calf Starter is specially formulated to support early growth, improve immunity, and strengthen digestion in calves.",
     details: "", // 👈 blank for future
     category: "Calf Feed",
-    price: 1855,
-    oldPrice: 2300,
+    price: 1355,
+    oldPrice: 1500,
+    Quantity : "25 Kg",
 
      ProductDetails: [
     "/public/image/calf-starter.webp",
@@ -17,7 +18,7 @@ export const products = [
   ],
   },
   {
-    id: "calfgrowthbooster",
+    id: "calf-growth-booster",
     image: "/public/image/Calf-Growth-Booster.webp",
     title: "Calf Growth Booster",
     description: "Higher yield and better quality milk",
@@ -25,8 +26,9 @@ export const products = [
       "Calf Growth Booster provides balanced nutrition to enhance growth, strength, and future milk production.",
     details: "",
     category: "Calf Feed",
-    price: 2356,
-    oldPrice: 3000,
+    price: 1756,
+    oldPrice: 2100,
+    Quantity : "50 Kg",
 
      ProductDetails: [
     "/public/image/Calf-Growth-Booster.webp",
@@ -43,8 +45,9 @@ export const products = [
       "Heifer Prime Care supports healthy development and prepares heifers for higher productivity.",
     details: "",
     category: "Heifer Feed",
-    price: 2400,
-    oldPrice: 3100,
+    price: 1653,
+    oldPrice: 2100,
+    Quantity : "50 Kg",
 
      ProductDetails: [
     "/public/image/Heifer-Prime-Care.webp",
@@ -60,8 +63,9 @@ export const products = [
       "Ultimate Dry Care is designed for dry cows to maintain body condition and improve post-calving performance.",
     details: "",
     category: "Dry Cow Feed",
-    price: 2309,
-    oldPrice: 2859,
+    price: 1554,
+    oldPrice: 2059,
+    Quantity : "50 Kg",
 
      ProductDetails: [
     "/public/image/Ultimate-Dry-Care.webp",
@@ -77,8 +81,9 @@ export const products = [
       "Transition Wellness Pre-20 supports cows before calving, reducing stress and improving metabolic health.",
     details: "",
     category: "Transition Feed",
-    price: 2933,  
-    oldPrice: 3500,
+    price: 2188,  
+    oldPrice: 2500,
+    Quantity : "50 Kg",
 
      ProductDetails: [
     "/public/image/transition-wellness-pre-20.webp",
@@ -95,8 +100,9 @@ export const products = [
       "Transition Wellness Post-20 supports recovery after calving and improves milk yield and quality.",
     details: "",
     category: "Transition Feed",
-    price: 2852,
-    oldPrice: 3505,
+    price: 2152,
+    oldPrice: 2505,
+    Quantity : "50 Kg",
 
      ProductDetails: [
     "/public/image/transition-wellness-post-20.webp",
@@ -112,8 +118,9 @@ export const products = [
       "Xtra Milk enhances milk production and improves overall animal performance.",
     details: "",
     category: "Lactation Feed",
-    price: 2001,
-    oldPrice: 2500,
+    price: 1395,
+    oldPrice: 2000,
+    Quantity : "50 Kg",
 
      ProductDetails: [
     "/public/image/Xtra-Milk.webp",
@@ -130,8 +137,9 @@ export const products = [
       "Xtra Milk 8000 is a high-energy formulation for maximum milk output.",
     details: "",
     category: "Lactation Feed",
-    price: 2233,
-    oldPrice: 3000,
+    price: 1595,
+    oldPrice: 2000,
+    Quantity : "50 Kg",
 
      ProductDetails: [
     "/public/image/Xtra-Milk-8000.webp",
@@ -148,8 +156,9 @@ export const products = [
       "Xtra Milk Prime supports peak lactation and improves milk consistency.",
     details: "",
     category: "Lactation Feed",
-    price: 2600,
-    oldPrice: 3000,
+    price: 1895,
+    oldPrice: 21000,
+    Quantity : "50 Kg",
 
      ProductDetails: [
     "/public/image/Xtra-Milk-Prime.webp",
@@ -166,8 +175,9 @@ export const products = [
       "Xtra Milk Buff maintains rumen health and boosts milk quality.",
     details: "",
     category: "Lactation Feed",
-    price: 2395,
-    oldPrice: 2900,
+    price: 1695,
+    oldPrice: 2100,
+    Quantity : "50 Kg",
 
      ProductDetails: [
     "/public/image/Xtra-Milk-Buff.webp",

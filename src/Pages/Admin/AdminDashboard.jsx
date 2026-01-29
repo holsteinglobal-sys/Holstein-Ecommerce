@@ -7,6 +7,7 @@ import {
   MdDashboard,
   MdArticle,
   MdLogout,
+  MdConfirmationNumber,
 } from 'react-icons/md';
 import { useNavigate, Link } from 'react-router-dom';
 import AdminProducts from './AdminProducts';
@@ -15,6 +16,7 @@ import AdminUsers from './AdminUsers';
 import AdminCarts from './AdminCarts';
 import AdminOrders from './AdminOrders';
 import AdminShipping from './AdminShipping';
+import AdminCoupons from './AdminCoupons';
 import toast from 'react-hot-toast';
 import { FaHome, FaSignOutAlt, FaSearch } from 'react-icons/fa';
 
@@ -88,6 +90,14 @@ const AdminDashboard = () => {
       bgColor: "bg-pink-100",
       hoverBg: "hover:bg-pink-50",
     },
+    {
+      id: "coupons",
+      label: "Coupon Management",
+      icon: MdConfirmationNumber,
+      color: "text-amber-600",
+      bgColor: "bg-amber-100",
+      hoverBg: "hover:bg-amber-50",
+    },
   ];
 
   const renderContent = () => {
@@ -98,6 +108,7 @@ const AdminDashboard = () => {
       case 'shipping': return <AdminShipping />;
       case 'products': return <AdminProducts />;
       case 'blogs': return <AdminBlogs />;
+      case 'coupons': return <AdminCoupons />;
       default: return <AdminOrders searchTerm={globalSearchTerm} />;
     }
   };

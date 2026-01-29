@@ -11,7 +11,8 @@ const Address = () => {
           <h4 className="font-semibold text-gray-800">Address</h4>
           <p className="text-gray-500 text-sm">
             Holstein Nutrition Pvt. Ltd.<br />
-            Industrial Area, Punjab, India
+            1803, 18th Floor, Omaxe India Trade Tower,
+            New Chandigarh 
           </p>
         </div>
       </div>

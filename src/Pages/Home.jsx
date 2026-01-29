@@ -4,6 +4,7 @@ import Card from "../Component/Card.jsx";
 import Heading2 from "../Component/Heading2.jsx";
 import Testimonial from "../Component/Testimonial.jsx";
 import { products } from "../Data/product.js";
+import Timeline from "../Component/Timeline.jsx";
 
 
 
@@ -18,7 +19,7 @@ const Home = () => {
       <Heading />
 
    
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 my-8 mx-auto max-w-6xl ">
+      {/* <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-10 my-8 mx-auto max-w-6xl ">
       {products.map((item) => (
         <Card
           key={item.id}
@@ -29,10 +30,14 @@ const Home = () => {
         />
       ))}
       
-    </div>
+    </div> */}
+
+    
+
+    <Timeline/>
 
       
-      <Heading2 />
+      {/* <Heading2 /> */}
       <Testimonial />
     </div>
   );

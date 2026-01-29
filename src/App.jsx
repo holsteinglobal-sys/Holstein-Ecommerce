@@ -29,7 +29,8 @@ import AdminLogin from './Pages/Admin/AdminLogin.jsx';
 import AdminDashboard from './Pages/Admin/AdminDashboard.jsx';
 import Contact from './Pages/ContactUs/Contact.jsx';
 import SocialMedia from "./Component/SocialMedia.jsx";
-import {NotificationProvider} from './context/NotificationContext.jsx';
+import OrderSuccess from './Pages/OrderSuccess.jsx';
+
 const App = () => {
 
   const location = useLocation();
@@ -45,7 +46,6 @@ const App = () => {
 
   return (
     <AuthProvider>
-    <NotificationProvider>
     <CartProvider>
       <div >
           <ScrollToTop />
@@ -70,6 +70,7 @@ const App = () => {
        <Route path="/cart" element={<Cart />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/order-success" element={<OrderSuccess />} />
 
         </Routes>
 
@@ -81,7 +82,6 @@ const App = () => {
 
       </div>
     </CartProvider>
-    </NotificationProvider>
     </AuthProvider>
   )
 }

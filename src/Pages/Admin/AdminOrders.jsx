@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
-import { collection, onSnapshot, updateDoc, doc, orderBy, query, addDoc, collection as firestoreCollection} from 'firebase/firestore';
+import { collection, onSnapshot, updateDoc, doc, orderBy, query, addDoc, getDoc, serverTimestamp, increment, collection as firestoreCollection} from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { FaClipboardList, FaClock, FaCheck, FaShippingFast, FaTimes, FaTicketAlt, FaSearch, FaEye } from 'react-icons/fa';
 import { IoCloseSharp } from 'react-icons/io5';
+import axios from 'axios';
 
 const AdminOrders = ({ searchTerm = '' }) => {
     const [orders, setOrders] = useState([]);
@@ -21,13 +22,23 @@ const AdminOrders = ({ searchTerm = '' }) => {
         return unsubscribe;
     }, []);
 
-    // Filtering logic
+    // Filtering logic (Enhanced to handle both logistical and financial statuses)
     useEffect(() => {
         let filtered = orders;
 
-        // Filter by status
-        if (activeFilter !== 'all') {
-            filtered = filtered.filter(order => order.status === activeFilter);
+        // Filter by section
+        if (activeFilter === 'paid') {
+            filtered = filtered.filter(order => order.paymentStatus === 'paid' && order.status !== 'delivered');
+        } else if (activeFilter === 'delivered') {
+            filtered = filtered.filter(order => order.status === 'delivered');
+        } else if (activeFilter === 'pending') {
+            filtered = filtered.filter(order => order.status === 'pending');
+        } else if (activeFilter === 'refunded') {
+            filtered = filtered.filter(order => order.status === 'refunded' || order.paymentStatus === 'refunded');
+        } else if (activeFilter === 'shipped') {
+            filtered = filtered.filter(order => order.status === 'shipped');
+        } else if (activeFilter === 'cancelled') {
+            filtered = filtered.filter(order => order.status === 'cancelled');
         }
 
         // Filter by search term (6-digit order ID)
@@ -40,35 +51,26 @@ const AdminOrders = ({ searchTerm = '' }) => {
         setFilteredOrders(filtered);
     }, [orders, activeFilter, searchTerm]);
 
-    const updateStatus = async (orderId, newStatus) => {
-        // Confirmation dialog
-        const confirmMessage = `Are you sure you want to ${newStatus === 'shipped' ? 'ship' : newStatus === 'delivered' ? 'deliver' : newStatus} this order?`;
+    const updateStatus = async (orderId, oldStatus, newStatus) => {
+        // Validation: Cannot cancel if shipped or delivered
+        if (newStatus === 'cancelled' && (oldStatus === 'shipped' || oldStatus === 'delivered')) {
+            toast.error("Cannot cancel an order that has already been shipped or delivered.");
+            return;
+        }
+
+        // Validation: If cancelled, cannot move back to active states easily (optional safety)
+        if (oldStatus === 'cancelled' && newStatus !== 'cancelled') {
+            if (!window.confirm("This order was previously cancelled. Are you sure you want to reactivate it?")) return;
+        }
+
+        const confirmMessage = `Are you sure you want to change logistical status to ${newStatus}?`;
         if (!window.confirm(confirmMessage)) return;
 
         try {
             await updateDoc(doc(db, "orders", orderId), { status: newStatus });
-            toast.success("Order status updated");
-
-            // Send notification to user
-            const order = orders.find(o => o.id === orderId);
-            if (order && order.userId) {
-                try {
-                    await addDoc(firestoreCollection(db, "notifications"), {
-                        userId: order.userId,
-                        title: "Order Status Updated",
-                        message: `Admin has ${newStatus} your order #${orderId.slice(-6).toUpperCase()}`,
-                        type: "order_update",
-                        orderId: orderId,
-                        read: false,
-                        createdAt: new Date()
-                    });
-                    console.log(`Notification sent to user ${order.userId} for order ${orderId}`);
-                } catch (notificationError) {
-                    console.error("Error sending notification:", notificationError);
-                    toast.error("Order updated but notification failed to send");
-                }
-            } else {
-                console.warn("Order or userId not found for notification");
+            toast.success("Order logistical status updated");
+            if (selectedOrder && selectedOrder.id === orderId) {
+                setSelectedOrder(prev => ({ ...prev, status: newStatus }));
             }
         } catch (error) {
             console.error("Error updating order status:", error);
@@ -76,14 +78,146 @@ const AdminOrders = ({ searchTerm = '' }) => {
         }
     };
 
-    // Stats Calculation
+    const updatePaymentStatus = async (orderId, newStatus) => {
+        const confirmMessage = `Are you sure you want to change payment status to ${newStatus}?`;
+        if (!window.confirm(confirmMessage)) return;
+
+        try {
+            await updateDoc(doc(db, "orders", orderId), { paymentStatus: newStatus });
+            toast.success("Payment status updated");
+            if (selectedOrder && selectedOrder.id === orderId) {
+                setSelectedOrder(prev => ({ ...prev, paymentStatus: newStatus }));
+            }
+        } catch (error) {
+            console.error("Error updating payment status:", error);
+            toast.error("Failed to update payment status");
+        }
+    };
+
+    const handleCancelAndRefund = async (order) => {
+        const walletRefundAmount = order.walletAmountUsed || 0;
+        const gatewayRefundAmount = order.totalAmount || 0;
+
+        let confirmMsg = `Are you sure you want to cancel this order?\n\nRefund Summary:\n`;
+        if (walletRefundAmount > 0) confirmMsg += `- ₹${walletRefundAmount} will be returned to User Wallet\n`;
+        if (gatewayRefundAmount > 0 && order.paymentMethod === 'razorpay' && order.paymentStatus === 'paid') {
+            confirmMsg += `- ₹${gatewayRefundAmount} will be automatically refunded via Razorpay Source\n`;
+        } else if (gatewayRefundAmount > 0) {
+            confirmMsg += `- ₹${gatewayRefundAmount} (COD/Unpaid) - No electronic refund required.\n`;
+        }
+
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            let updateNote = "";
+
+            // 1. Handle Wallet Refund (if any)
+            if (walletRefundAmount > 0) {
+                const userRef = doc(db, "users", order.userId);
+                await updateDoc(userRef, {
+                    walletBalance: increment(walletRefundAmount)
+                });
+
+                await addDoc(collection(db, "wallet_transactions"), {
+                    userId: order.userId,
+                    amount: walletRefundAmount,
+                    type: "credit",
+                    description: `Refund (Order Cancelled: ${order.id.slice(-6).toUpperCase()})`,
+                    orderId: order.id,
+                    date: serverTimestamp()
+                });
+                updateNote += `₹${walletRefundAmount} restored to wallet. `;
+            }
+
+            // 2. Handle Razorpay Source Refund (if any and if paid)
+            if (order.paymentMethod === 'razorpay' && order.paymentStatus === 'paid' && gatewayRefundAmount > 0) {
+                try {
+                    const response = await axios.post("http://localhost:5000/api/payments/refund", {
+                        paymentId: order.paymentId,
+                        amount: gatewayRefundAmount,
+                        notes: { reason: `Order Cancelled by Admin: ${order.id}` }
+                    });
+                    if (response.status === 200) {
+                        updateNote += `₹${gatewayRefundAmount} refunded to Razorpay source. `;
+                    }
+                } catch (err) {
+                    console.error("Razorpay Source Refund Error:", err);
+                    toast.error("Wallet restored, but Razorpay source refund failed. Please check backend logs.");
+                    updateNote += `FAILED to refund ₹${gatewayRefundAmount} to source via Razorpay. `;
+                }
+            } else if (gatewayRefundAmount > 0) {
+                 updateNote += `Cancelled without source refund (₹${gatewayRefundAmount}). `;
+            }
+
+            // 3. Final Order Update
+            const finalRefundNote = `${updateNote} (Processed on ${new Date().toLocaleString()})`;
+            await updateDoc(doc(db, "orders", order.id), {
+                status: "cancelled",
+                paymentStatus: (order.paymentMethod === 'razorpay' && order.paymentStatus === 'paid') ? "refunded" : order.paymentStatus,
+                refundNote: finalRefundNote,
+                cancelledAt: serverTimestamp()
+            });
+
+            toast.success("Order cancelled and refund processed.");
+            if (selectedOrder && selectedOrder.id === order.id) {
+                setSelectedOrder(prev => ({ 
+                    ...prev, 
+                    status: "cancelled", 
+                    paymentStatus: (order.paymentMethod === 'razorpay' && order.paymentStatus === 'paid') ? "refunded" : prev.paymentStatus,
+                    refundNote: finalRefundNote 
+                }));
+            }
+        } catch (error) {
+            console.error("Split Refund Error:", error);
+            toast.error("Failed to process split refund.");
+        }
+    };
+
+    const handleRefund = async (order) => {
+        if (!order.paymentId) {
+            toast.error("No payment ID found for this order.");
+            return;
+        }
+
+        if (!window.confirm("Are you sure you want to process a refund for this order?")) return;
+
+        try {
+            const response = await axios.post("http://localhost:5000/api/payments/refund", {
+                paymentId: order.paymentId,
+                amount: order.totalAmount
+            });
+
+            if (response.status === 200) {
+                await updateDoc(doc(db, "orders", order.id), { status: "refunded" });
+                toast.success("Refund processed and order status updated.");
+                setSelectedOrder(prev => ({ ...prev, status: "refunded" }));
+            }
+        } catch (error) {
+            console.error("Refund Error:", error);
+            toast.error(error.response?.data?.message || "Failed to process refund");
+        }
+    };
+
+    // Calculate Active Metrics correctly (Strict: Only DELIVERED orders count for revenue/sales)
+    const deliveredOrders = orders.filter(o => o.status === 'delivered');
+    
+    const totalRevenue = deliveredOrders.reduce((sum, o) => {
+        const amt = Number(o.totalAmount) || 0;
+        return sum + amt;
+    }, 0);
+
+    const totalSold = deliveredOrders.reduce((sum, o) => {
+        const qty = o.products?.reduce((qSum, p) => qSum + (Number(p.qty) || 0), 0) || 0;
+        return sum + qty;
+    }, 0);
+
     const stats = [
         { label: 'Total', value: orders.length, icon: <FaClipboardList className="text-primary" />, color: 'bg-indigo-100 text-indigo-600 ' },
-        { label: 'Pending', value: orders.filter(o => o.status === 'pending').length, icon: <FaClock className="text-warning" />, color: 'bg-yellow-100 text-yellow-600' },
-        { label: 'Shipped', value: orders.filter(o => o.status === 'shipped').length, icon: <FaShippingFast className="text-blue"/>, color: 'bg-blue-100 text-blue-600' },
-        { label: 'Delivered', value: orders.filter(o => o.status === 'delivered').length, icon: <FaCheck className="text-green-500" />, color: 'bg-green-100 text-green-600' },
-        { label: 'Cancelled', value: orders.filter(o => o.status === 'cancelled').length, icon: <FaTimes className="text-error" />, color: 'bg-red-100 text-red-600' },
-        { label: 'Total Revenue', value: `₹${orders.reduce((sum, o) => sum + o.totalAmount, 0)}`, icon: <FaTicketAlt className="text-white" />, color: 'bg-emerald-500 text-white', isSpecial: true }
+        { label: 'New Order', value: orders.filter(o => o.status === 'pending').length, icon: <FaClock className="text-warning" />, color: 'bg-yellow-100 text-yellow-600' },
+        { label: 'Paid', value: orders.filter(o => o.paymentStatus === 'paid' && o.status !== 'delivered').length, icon: <FaCheck className="text-green-500" />, color: 'bg-green-100 text-green-600' },
+        { label: 'Delivered', value: orders.filter(o => o.status === 'delivered').length, icon: <FaShippingFast className="text-emerald-500" />, color: 'bg-emerald-100 text-emerald-600' },
+        { label: 'Products Sold', value: totalSold, icon: <FaTicketAlt className="text-white" />, color: 'bg-blue-500 text-white', isSpecial: true },
+        { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: <FaTicketAlt className="text-white" />, color: 'bg-emerald-500 text-white', isSpecial: true }
     ];
 
     const StatusDot = ({ type, pulse = false }) => (
@@ -103,7 +237,7 @@ const AdminOrders = ({ searchTerm = '' }) => {
             {/* STATS CARDS */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
                 {stats.map((stat, i) => {
-                    const filterValue = stat.label.toLowerCase();
+                    const filterValue = stat.label === 'New Order' ? 'pending' : stat.label.toLowerCase();
                     const isActive = activeFilter === filterValue;
                     const isClickable = !stat.isSpecial && stat.label !== 'Total';
 
@@ -168,7 +302,7 @@ const AdminOrders = ({ searchTerm = '' }) => {
                                              order.status === 'pending' ? 'bg-yellow-400/90 text-black' :
                                              order.status === 'cancelled' ? 'bg-red-400/90 text-white' : 'bg-blue-400/90 text-white'
                                          }`}>
-                                             {order.status}
+                                             {order.status === 'pending' ? 'New Order' : order.status}
                                          </span>
                                     </div>
                                </figure>
@@ -182,6 +316,7 @@ const AdminOrders = ({ searchTerm = '' }) => {
                                         {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'} •
                                         {order.products?.reduce((acc, p) => acc + p.qty, 0) || 0} items •
                                         ₹{order.totalAmount}
+                                        {order.walletAmountUsed > 0 && ` (₹${order.walletAmountUsed} Wallet)`}
                                     </p>
                                     <p className="text-sm text-gray-600">
                                         <span className="font-medium">{order.userName}</span> • {order.userPhone}
@@ -224,24 +359,47 @@ const AdminOrders = ({ searchTerm = '' }) => {
 
                         {/* Content */}
                         <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
-                            {/* Status Control */}
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-500">Order Status</span>
-                                <select
-                                    className={`select select-bordered select-sm w-48 ${
-                                        selectedOrder.status === 'delivered' ? 'select-success' :
-                                        selectedOrder.status === 'cancelled' ? 'select-error' :
-                                        'select-warning'
-                                    }`}
-                                    value={selectedOrder.status}
-                                    onChange={(e) => updateStatus(selectedOrder.id, e.target.value)}
-                                >
-                                    <option value="pending">Pending</option>
-                                    <option value="processing">Processing</option>
-                                    <option value="shipped">Shipped</option>
-                                    <option value="delivered">Delivered</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
+                            {/* Dual Status Controls */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b">
+                                {/* Logistical Status */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Order Status (Logistics)</label>
+                                    <select
+                                        className={`select select-bordered select-sm w-full ${
+                                            selectedOrder.status === 'delivered' ? 'select-success' :
+                                            selectedOrder.status === 'cancelled' ? 'select-error' :
+                                            'select-warning'
+                                        }`}
+                                        value={selectedOrder.status}
+                                        onChange={(e) => updateStatus(selectedOrder.id, selectedOrder.status, e.target.value)}
+                                    >
+                                        <option value="pending">New Order</option>
+                                        <option value="processing">Processing</option>
+                                        <option value="shipped">Shipped</option>
+                                        <option value="delivered">Delivered</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+
+                                {/* Financial Status */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Payment Status (Financial)</label>
+                                    <select
+                                        className={`select select-bordered select-sm w-full ${
+                                            selectedOrder.paymentStatus === 'paid' ? 'select-success' :
+                                            selectedOrder.paymentStatus === 'refunded' ? 'select-error' :
+                                            selectedOrder.paymentStatus === 'failed' ? 'select-error' :
+                                            'select-warning'
+                                        }`}
+                                        value={selectedOrder.paymentStatus || 'pending'}
+                                        onChange={(e) => updatePaymentStatus(selectedOrder.id, e.target.value)}
+                                    >
+                                        <option value="pending">Pending</option>
+                                        <option value="paid">Paid</option>
+                                        <option value="failed">Failed</option>
+                                        <option value="refunded">Refunded</option>
+                                    </select>
+                                </div>
                             </div>
 
                             {/* Tracking Timeline */}
@@ -357,22 +515,62 @@ const AdminOrders = ({ searchTerm = '' }) => {
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
                                         <span>Subtotal ({selectedOrder.products?.reduce((acc, p) => acc + p.qty, 0) || 0} items)</span>
-                                        <span>₹{selectedOrder.totalAmount}</span>
+                                        <span>₹{selectedOrder.subtotal || selectedOrder.totalAmount}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span>Shipping</span>
-                                        <span>₹0.00</span>
+                                        <span>₹{selectedOrder.shippingCharge || 0}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span>Tax</span>
-                                        <span>₹0.00</span>
-                                    </div>
+                                    {selectedOrder.walletAmountUsed > 0 && (
+                                        <div className="flex justify-between text-emerald-600 font-bold">
+                                            <span>Wallet Balance Used</span>
+                                            <span>- ₹{selectedOrder.walletAmountUsed}</span>
+                                        </div>
+                                    )}
                                     <hr className="my-2" />
                                     <div className="flex justify-between font-bold text-lg">
-                                        <span>Total</span>
+                                        <span>Final Paid Amount</span>
                                         <span className="text-primary">₹{selectedOrder.totalAmount}</span>
                                     </div>
                                 </div>
+                            </div>
+
+                            {/* Admin Actions Section */}
+                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 mt-6 space-y-4">
+                                <h4 className="text-gray-800 font-bold uppercase text-xs tracking-widest">Administrative Actions</h4>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {/* Wallet Refund Button - Available for non-cancelled orders */}
+                                    {selectedOrder.status !== 'cancelled' && selectedOrder.status !== 'delivered' && (
+                                        <button 
+                                            onClick={() => handleCancelAndRefund(selectedOrder)}
+                                            className="btn btn-outline btn-error w-full text-xs font-bold"
+                                        >
+                                            Cancel & Process Split Refund
+                                        </button>
+                                    )}
+
+                                    {/* Original Razorpay Refund logic - only for razorpay + paid */}
+                                    {/* {selectedOrder.paymentMethod === 'razorpay' && 
+                                     selectedOrder.paymentStatus === 'paid' && (
+                                        <button 
+                                            onClick={() => handleRefund(selectedOrder)}
+                                            className="btn btn-error w-full text-white"
+                                        >
+                                            Razorpay Source Refund
+                                        </button>
+                                    )} */}
+                                </div>
+
+                                {selectedOrder.refundNote && (
+                                    <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-700 text-sm italic">
+                                        <strong>Refund Note:</strong> {selectedOrder.refundNote}
+                                    </div>
+                                )}
+
+                                <p className="text-[10px] text-gray-400 italic">
+                                    * Wallet refund is instant. Razorpay source refund takes 5-7 days.
+                                </p>
                             </div>
                         </div>
                     </div>

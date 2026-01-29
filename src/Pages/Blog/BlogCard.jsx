@@ -1,4 +1,5 @@
 import React from "react";
+import { getDirectGDriveUrl } from "../../utils/googleDriveConverter";
 
 const BlogCard = ({ blog }) => {
   return (
@@ -6,7 +7,7 @@ const BlogCard = ({ blog }) => {
       {/* Image */}
       <figure className="h-56 overflow-hidden">
         <img
-          src={blog.image}
+          src={getDirectGDriveUrl(blog.image)}
           alt={blog.title}
           className="h-full w-full object-cover"
         />
