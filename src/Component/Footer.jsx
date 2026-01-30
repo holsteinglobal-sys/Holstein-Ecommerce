@@ -200,13 +200,13 @@ const Footer = () => {
             {/* Compact Coupon Box */}
             <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10 group">
               <h5 className="text-gray-900 text-xs font-bold mb-3 flex items-center gap-2">
-                <FaTicketAlt className="text-primary" /> Reddem Coupon
+                <FaTicketAlt className="text-primary text-xl" /> Reddem Coupon
               </h5>
               <form onSubmit={handleRedeem} className="flex gap-2">
                 <input 
                   type="text" 
                   placeholder="Code"
-                  className="flex-1 bg-white border px-1 border-gray-200 rounded-xl  py-2 text-xs focus:outline-none focus:border-primary transition-all text-gray-900"
+                  className="flex bg-white border  px-1 border-gray-200 rounded-xl  py-2 text-xs focus:outline-none focus:border-primary transition-all text-gray-900"
                   value={couponCode}
                   onChange={(e) => setCouponCode(e.target.value)}
                 />

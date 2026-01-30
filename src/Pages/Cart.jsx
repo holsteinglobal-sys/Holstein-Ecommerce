@@ -136,7 +136,7 @@ const Cart = () => {
     const addrObj = savedAddresses.find((a) => a.id === selectedAddressId);
     if (!addrObj) return;
 
-    if (paymentType === "cod") {
+    if (paymentType === "cod" || total <= 0) {
       // Robust COD Logic with Transactions
       try {
         const userDoc = await getDoc(doc(db, "users", currentUser.uid));
@@ -154,8 +154,8 @@ const Cart = () => {
           walletAmountUsed: appliedWalletAmount,
           totalAmount: total,
           status: "pending",
-          paymentStatus: "pending",
-          paymentMethod: "cod",
+          paymentStatus: total <= 0 ? "paid" : "pending",
+          paymentMethod: total <= 0 ? "wallet" : "cod",
         };
 
         await runTransaction(db, async (transaction) => {
@@ -207,12 +207,15 @@ const Cart = () => {
       // Razorpay Logic (Secure Production Flow)
       try {
         // 1. Create secure order on backend with price verification
-        const response = await axios.post("http://localhost:5000/api/payments/create-order", {
+        const payload = {
           userId: currentUser.uid,
           items: cartItems.map(item => ({ id: item.id, qty: item.qty })),
           walletAmountUsed: appliedWalletAmount,
           shippingCharge: shippingCharge
-        });
+        };
+        console.log("Creating Razorpay Order with payload:", payload);
+
+        const response = await axios.post("http://localhost:5000/api/payments/create-order", payload);
 
         const rzpOrder = response.data;
 
@@ -289,7 +292,9 @@ const Cart = () => {
         rzp.open();
       } catch (error) {
         console.error("Razorpay Error:", error);
-        toast.error(error.response?.data?.message || "Failed to initiate payment");
+        // Show the SPECIFIC error from backend if available
+        const errMsg = error.response?.data?.error || error.response?.data?.message || "Failed to initiate payment";
+        toast.error(`Payment Failed: ${errMsg}`);
       }
     }
   };
@@ -652,7 +657,7 @@ const Cart = () => {
                                     </div>
 
                                     <div className="space-y-4">
-                                        {['card', 'upi', 'cod'].map(method => (
+                                        {[ 'upi', 'cod'].map(method => (
                                             <label key={method} className={`flex items-center gap-6 p-6 rounded-2xl border-2 cursor-pointer transition-all ${paymentType === method ? 'border-green-500 bg-green-50' : 'border-gray-100 hover:border-gray-200'}`}>
                                                 <input type="radio" name="payment" className="w-5 h-5 text-green-600" checked={paymentType === method} onChange={() => setPaymentType(method)} />
                                                 <div className="flex-1">

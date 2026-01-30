@@ -206,7 +206,7 @@ const OrderHistory = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
                     {filteredOrders.map((order) => (
-                        <div key={order.id} className="card bg-base-100 w-full shadow-sm mx-auto overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300">
+                        <div key={order.id} className="card bg-base-100 w-full shadow-sm mx-auto overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300" >
                            <figure className="h-72 bg-gray-100 flex items-center justify-center relative">
                                 {order.products && order.products.length > 0 && order.products[0]?.image && (
                                     <img src={order.products[0].image} alt="Order Cover" className="h-full max-w-full object-contain" />
@@ -229,10 +229,11 @@ const OrderHistory = () => {
                                 </div>
                            </figure>
 
-                           <div className="card-body">
+                           <div className="card-body ">
                                 <h2 className="card-title text-lg">
                                     Order #{order.id.slice(-6).toUpperCase()}
                                     {order.products && order.products.length > 1 && ` (${order.products.length} items)`}
+                                   
                                 </h2>
                                 <p className="text-sm text-gray-600">
                                     {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'} •

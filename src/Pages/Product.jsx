@@ -43,7 +43,7 @@ const ProductPage = () => {
         </div>
 
         {/* PRODUCT GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-4 gap-5">
           {filteredProducts.map((item) => (
             <Card
               key={item.id}
@@ -51,6 +51,10 @@ const ProductPage = () => {
               image={item.image}
               title={item.title}
               description={item.description}
+              price={item.price}
+              oldPrice={item.oldPrice}
+              quantity={item.Quantity}
+
             />
           ))}
         </div>

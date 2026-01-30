@@ -2,15 +2,72 @@ import Razorpay from 'razorpay';
 import crypto from 'crypto';
 import admin from 'firebase-admin';
 import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
 // Initialize Firebase Admin
-if (!admin.apps.length) {
+let isFirebaseInitialized = false;
+
+try {
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = dirname(__filename);
+  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || join(__dirname, 'serviceAccount.json');
+
+  console.log(`[FIREBASE_INIT] Attempting to load credentials from: ${serviceAccountPath}`);
+
+  if (!authFileExists(serviceAccountPath)) {
+     throw new Error(`Service account file not found at ${serviceAccountPath}`);
+  }
+
   const serviceAccount = JSON.parse(
-    readFileSync(process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './serviceAccount.json', 'utf8')
+    readFileSync(serviceAccountPath, 'utf8')
   );
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+  
+  if (!serviceAccount.project_id || !serviceAccount.client_email || !serviceAccount.private_key) {
+      throw new Error("Invalid serviceAccount.json: Missing project_id, client_email, or private_key.");
+  }
+
+  console.log(`[FIREBASE_INIT] Service Account ID: ${serviceAccount.project_id}`);
+  console.log(`[FIREBASE_INIT] Client Email: ${serviceAccount.client_email}`);
+
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log("[FIREBASE_INIT] Firebase Admin App initialized.");
+  }
+  
+  isFirebaseInitialized = true;
+
+  // Pre-flight check: Try to reach Firestore to ensure Auth is actually working
+  // This catches the "16 UNAUTHENTICATED" error at startup
+  const dbTest = admin.firestore();
+  dbTest.listCollections()
+    .then(() => console.log("[FIREBASE_CONNECTION_TEST] SUCCESS: Connected to Firestore."))
+    .catch(err => {
+        console.error("________________________________________________________________");
+        console.error("[CRITICAL ERROR] FIREBASE CONNECTION FAILED");
+        console.error("Error Code:", err.code);
+        console.error("Message:", err.message);
+        console.error("Resolution: Check if 'serviceAccount.json' is valid, not expired, and has 'Firebase Admin SDK Administrator Service Agent' roles.");
+        console.error("________________________________________________________________");
+    });
+
+} catch (error) {
+  console.error("________________________________________________________________");
+  console.error("[FIREBASE_INIT] FATAL ERROR: Could not initialize Firebase Admin.");
+  console.error(error.message);
+  console.error("Resolution: Ensure 'serviceAccount.json' is present in the server directory and correct.");
+  console.error("________________________________________________________________");
+}
+
+function authFileExists(path) {
+    try {
+        readFileSync(path);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 const db = admin.firestore();
@@ -23,6 +80,21 @@ const razorpay = new Razorpay({
 export const createRazorpayOrder = async (req, res) => {
   try {
     const { items, walletAmountUsed, shippingCharge, userId } = req.body;
+
+    if (!isFirebaseInitialized) {
+        console.error("[CREATE_ORDER] BLOCKED: Backend Server is not authenticating with Firebase.");
+        return res.status(503).json({ 
+            message: "Payment Service Unavailable: Server Authentication Failed.",
+            error: "Backend failed to connect into database." 
+        });
+    }
+
+    console.log("[CREATE_ORDER] Request received:", { 
+      itemsCount: items?.length, 
+      walletAmountUsed, 
+      shippingCharge, 
+      userId 
+    });
 
     if (!items || !Array.isArray(items)) {
       return res.status(400).json({ message: "Invalid items format. 'items' must be an array." });
@@ -40,31 +112,68 @@ export const createRazorpayOrder = async (req, res) => {
       }
       const productDoc = await db.collection('products').doc(item.id).get();
       if (!productDoc.exists) {
+        console.warn(`[CREATE_ORDER] Product not found: ${item.id}`);
         return res.status(400).json({ message: `Product with ID ${item.id} not found in our database.` });
       }
       const productData = productDoc.data();
-      calculatedSubtotal += (productData.price * item.qty);
+      const price = Number(productData.price);
+      
+      if (isNaN(price)) {
+          console.error(`[CREATE_ORDER] Invalid price for product ${item.id}: ${productData.price}`);
+          return res.status(500).json({ message: `Server Error: Invalid price data for product ${productData.title || item.id}` });
+      }
+
+      calculatedSubtotal += (price * Number(item.qty));
     }
+
+    console.log(`[CREATE_ORDER] Calculated Subtotal: ₹${calculatedSubtotal}`);
 
     // 2. Verify Wallet Balance
     let verifiedWalletUsage = 0;
     if (walletAmountUsed > 0 && userId) {
       const userDoc = await db.collection('users').doc(userId).get();
       if (userDoc.exists) {
-        const userWalletBalance = userDoc.data().walletBalance || 0;
-        verifiedWalletUsage = Math.min(walletAmountUsed, userWalletBalance, calculatedSubtotal);
+        const userWalletBalance = Number(userDoc.data().walletBalance) || 0;
+        verifiedWalletUsage = Math.min(Number(walletAmountUsed), userWalletBalance, calculatedSubtotal);
+        console.log(`[CREATE_ORDER] Wallet Verified: Request ${walletAmountUsed} | Available ${userWalletBalance} | Cap ${calculatedSubtotal} => Used ${verifiedWalletUsage}`);
       }
     }
 
     // 3. Calculate Final Total
-    const totalAmount = calculatedSubtotal + (shippingCharge || 0) - verifiedWalletUsage;
+    // Ensure all components are numbers
+    const validShipping = Number(shippingCharge) || 0;
+    const totalAmount = calculatedSubtotal + validShipping - verifiedWalletUsage;
 
-    // Razorpay expects amount in paise
+    if (isNaN(totalAmount) || totalAmount < 0) {
+        console.error(`[CREATE_ORDER] Invalid Total Calculation: ${calculatedSubtotal} + ${validShipping} - ${verifiedWalletUsage} = ${totalAmount}`);
+        return res.status(400).json({ message: "Error calculating order total." });
+    }
+
+    // Razorpay expects amount in paise. Min amount is 100 paise (₹1)
+    const amountInPaise = Math.round(totalAmount * 100);
+    
+    if (amountInPaise < 100 && amountInPaise > 0) {
+         return res.status(400).json({ message: "Order amount must be at least ₹1." });
+    }
+
+    // If total is 0 (fully paid by wallet), handle purely as a wallet order (should be handled by frontend COD flow logic basically, or we create a dummy RZP order? No, RZP won't accept 0)
+    // Actually, if amount is 0, frontend should have probably used the "Place Order" (COD/Wallet) flow, but let's handle it.
+    if (amountInPaise === 0) {
+         // If amount is 0, we can't create a Razorpay order. 
+         // Strategy: Return a special flag telling frontend to bypass Razorpay and call the 'verify' endpoint (or place-order) directly.
+         // But for now, let's assume strict separation. If we strictly need RZP, amount must be > 0.
+         // Ideally frontend logic prevents this.
+         console.warn("[CREATE_ORDER] Total amount is 0. Razorpay order cannot be created.");
+         return res.status(400).json({ message: "Payable amount is 0. Please use Wallet/COD checkout method." });
+    }
+
     const options = {
-      amount: Math.round(totalAmount * 100),
+      amount: amountInPaise,
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     };
+
+    console.log("[CREATE_ORDER] Creating Razorpay Order with options:", options);
 
     const order = await razorpay.orders.create(options);
     res.status(200).json({
@@ -73,10 +182,10 @@ export const createRazorpayOrder = async (req, res) => {
       verifiedWalletUsage: verifiedWalletUsage
     });
   } catch (error) {
-    console.error("RAZORPAY ERROR:", error);
+    console.error("RAZORPAY CREATE ORDER ERROR:", error);
     res.status(500).json({ 
       message: "Failed to create Razorpay order",
-      error: error.message 
+      error: error.message || "Unknown error" 
     });
   }
 };

@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
 import { collection, onSnapshot, updateDoc, doc, orderBy, query, addDoc, getDoc, serverTimestamp, increment, collection as firestoreCollection} from 'firebase/firestore';
 import toast from 'react-hot-toast';
-import { FaClipboardList, FaClock, FaCheck, FaShippingFast, FaTimes, FaTicketAlt, FaSearch, FaEye } from 'react-icons/fa';
+import { FaClipboardList, FaClock, FaCheck, FaShippingFast, FaTimes, FaTicketAlt, FaSearch, FaEye,FaPhoneAlt, FaCalendarAlt, FaShoppingCart } from 'react-icons/fa';
 import { IoCloseSharp } from 'react-icons/io5';
 import axios from 'axios';
+
 
 const AdminOrders = ({ searchTerm = '' }) => {
     const [orders, setOrders] = useState([]);
@@ -28,7 +29,7 @@ const AdminOrders = ({ searchTerm = '' }) => {
 
         // Filter by section
         if (activeFilter === 'paid') {
-            filtered = filtered.filter(order => order.paymentStatus === 'paid' && order.status !== 'delivered');
+            filtered = filtered.filter(order => order.paymentStatus === 'paid' && order.status !== 'delivered' && order.status !== 'cancelled');
         } else if (activeFilter === 'delivered') {
             filtered = filtered.filter(order => order.status === 'delivered');
         } else if (activeFilter === 'pending') {
@@ -214,8 +215,8 @@ const AdminOrders = ({ searchTerm = '' }) => {
     const stats = [
         { label: 'Total', value: orders.length, icon: <FaClipboardList className="text-primary" />, color: 'bg-indigo-100 text-indigo-600 ' },
         { label: 'New Order', value: orders.filter(o => o.status === 'pending').length, icon: <FaClock className="text-warning" />, color: 'bg-yellow-100 text-yellow-600' },
-        { label: 'Paid', value: orders.filter(o => o.paymentStatus === 'paid' && o.status !== 'delivered').length, icon: <FaCheck className="text-green-500" />, color: 'bg-green-100 text-green-600' },
         { label: 'Delivered', value: orders.filter(o => o.status === 'delivered').length, icon: <FaShippingFast className="text-emerald-500" />, color: 'bg-emerald-100 text-emerald-600' },
+        { label: 'Cancelled', value: orders.filter(o => o.status === 'cancelled').length, icon: <FaTimes className="text-error" />, color: 'bg-red-100 text-red-600' },
         { label: 'Products Sold', value: totalSold, icon: <FaTicketAlt className="text-white" />, color: 'bg-blue-500 text-white', isSpecial: true },
         { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: <FaTicketAlt className="text-white" />, color: 'bg-emerald-500 text-white', isSpecial: true }
     ];
@@ -287,7 +288,7 @@ const AdminOrders = ({ searchTerm = '' }) => {
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {filteredOrders.map((order) => (
-                            <div key={order.id} className="card bg-base-100 w-full shadow-sm mx-auto overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-300">
+                            <div key={order.id} className="card bg-base-100 w-full shadow-sm mx-auto overflow-hidden hover:scale-102 cursor-pointer transition-all duration-300" >
                                <figure className="h-72 bg-gray-100 flex items-center justify-center relative">
                                     {order.products && order.products.length > 0 && order.products[0]?.image ? (
                                         <img src={order.products[0].image} alt="Order Cover" className="h-full max-w-full object-contain" />
@@ -307,30 +308,62 @@ const AdminOrders = ({ searchTerm = '' }) => {
                                     </div>
                                </figure>
 
-                               <div className="card-body">
-                                    <h2 className="card-title text-lg">
-                                        Order #{order.id.slice(-6).toUpperCase()}
-                                        {order.products?.length > 1 && ` (${order.products.length} items)`}
-                                    </h2>
-                                    <p className="text-sm text-gray-600">
-                                        {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleDateString() : 'N/A'} •
-                                        {order.products?.reduce((acc, p) => acc + p.qty, 0) || 0} items •
-                                        ₹{order.totalAmount}
-                                        {order.walletAmountUsed > 0 && ` (₹${order.walletAmountUsed} Wallet)`}
-                                    </p>
-                                    <p className="text-sm text-gray-600">
-                                        <span className="font-medium">{order.userName}</span> • {order.userPhone}
-                                    </p>
+                              <div className="card-body space-y-3">
+  {/* Header: Customer Info */}
+  <div className="flex flex-wrap justify-between items-center gap-2">
+    <h2 className="text-lg font-semibold">
+      {order.userName}
+    </h2>
 
-                                    <div className="card-actions justify-center mt-4">
-                                        <button
-                                            onClick={() => setSelectedOrder(order)}
-                                            className="btn btn-primary w-full"
-                                        >
-                                            <FaEye className="mr-2" /> View Details
-                                        </button>
-                                    </div>
-                               </div>
+    <span className="flex items-center gap-2 text-sm text-gray-700">
+      <FaPhoneAlt className="text-success text-l" />
+      {order.userPhone}
+    </span>
+  </div>
+
+  {/* Order Meta */}
+  <div className="flex flex-wrap justify-between text-sm text-gray-600 gap-2">
+    <span className='flex items-center '>
+      <FaCalendarAlt className="text-gray-600 mr-1"/>{" "}
+      {order.createdAt?.toDate
+        ? order.createdAt.toDate().toLocaleDateString()
+        : "N/A"}
+    </span>
+
+    <span className='flex items-center '>
+       <FaShoppingCart className="text-gray-600 mr-1"/>{order.products?.reduce((acc, p) => acc + p.qty, 0) || 0} items
+    </span>
+  </div>
+
+  {/* Amount Info */}
+  <div className="flex flex-wrap justify-between items-center text-sm">
+    <span className="font-medium text-gray-800">
+      Total: ₹{order.totalAmount}
+      {order.walletAmountUsed > 0 && (
+        <span className="text-green-600 ml-1">
+          (₹{order.walletAmountUsed} Wallet)
+        </span>
+      )}
+    </span>
+
+    <span className="text-gray-500">
+      Order ID:{" "}
+      <span className="font-semibold">
+        {order.id.slice(-6).toUpperCase()}
+      </span>
+    </span>
+  </div>
+
+  {/* Action */}
+  <div className="card-actions pt-2">
+    <button
+      onClick={() => setSelectedOrder(order)}
+      className="btn btn-primary w-full"
+    >
+      <FaEye className="mr-2" /> View Order Details
+    </button>
+  </div>
+</div>
                             </div>
                         ))}
                     </div>
@@ -363,7 +396,7 @@ const AdminOrders = ({ searchTerm = '' }) => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-4 border-b">
                                 {/* Logistical Status */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Order Status (Logistics)</label>
+                                    <label className="text-xs font-bold text-black-400 uppercase tracking-wider">Order Status (Logistics)</label>
                                     <select
                                         className={`select select-bordered select-sm w-full ${
                                             selectedOrder.status === 'delivered' ? 'select-success' :
@@ -383,7 +416,7 @@ const AdminOrders = ({ searchTerm = '' }) => {
 
                                 {/* Financial Status */}
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">Payment Status (Financial)</label>
+                                    <label className="text-xs font-bold text-black-400 uppercase tracking-wider">Payment Status (Financial)</label>
                                     <select
                                         className={`select select-bordered select-sm w-full ${
                                             selectedOrder.paymentStatus === 'paid' ? 'select-success' :

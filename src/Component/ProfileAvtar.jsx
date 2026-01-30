@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 import { FaShoppingCart } from "react-icons/fa";
-import { CgProfile } from "react-icons/cg";
+import { RiDashboardFill } from "react-icons/ri";
 import { FaPowerOff } from "react-icons/fa6";
 
 const ProfileAvtar = () => {
@@ -54,9 +54,9 @@ const ProfileAvtar = () => {
                   navigate('/profile');
                   setDropdownOpen(false);
                 }}
-                className="btn btn-wide btn-outline w-full"
+                className="btn btn-wide btn-outline w-full flex items-center gap-2"
               >
-                <CgProfile />
+               <RiDashboardFill className='text-xl' />
                 Dashboard
               </button>
               <button
@@ -66,14 +66,14 @@ const ProfileAvtar = () => {
                 }}
                 className="btn btn-wide btn-outline w-full"
               >
-<FaShoppingCart />
+<FaShoppingCart className='text-xl'/>
                 Cart
               </button>
               <button
                 onClick={handleLogout}
                 className="btn btn-soft btn-secondary w-full"
               >
-                <FaPowerOff />
+                <FaPowerOff className='text-xl' />
                 Logout
               </button>
               
