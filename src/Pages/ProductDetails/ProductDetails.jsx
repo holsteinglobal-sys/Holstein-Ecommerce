@@ -51,7 +51,7 @@ const ProductDetails = () => {
       <ProductAccordion longDescription={product.longDescription} />
 
       {/* RELATED PRODUCTS */}
-      <RelatedProducts products={products.slice(0, 9)} />
+      <RelatedProducts products={products.slice(0, 20)} />
       <Testimonial
       className="mt-20 w-23"
       />

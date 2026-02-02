@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 
-const Card = ({ id, image, title, description,price,oldPrice,quantity }) => {
+const Card = ({ id, image, title, longDescription,price,oldPrice,quantity }) => {
   const navigate = useNavigate();
 
   const handleCardClick = () => {
@@ -23,7 +23,7 @@ const Card = ({ id, image, title, description,price,oldPrice,quantity }) => {
 
         <div className="card-body mb-1">
           <h2 className="card-title">{title}</h2>
-          <p className="text-sm text-gray-600 ">{description}</p>
+          <p className="text-sm text-gray-600 ">{longDescription}</p>
          
 
              <div className="flex items-center gap-2">

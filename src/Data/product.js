@@ -185,4 +185,61 @@ export const products = [
 
   ],
   },
+    {
+    id: "nandiraj",
+    image: "/public/image/Nandiraj.png",
+    title: "Nandiraj",
+    description: "Higher yield and better quality milk",
+    longDescription:
+      "Xtra Milk Buff maintains rumen health and boosts milk quality.",
+    details: "",
+    category: "Bull Feed",
+    price: 2150,
+    oldPrice: 2500,
+    Quantity : "50 Kg",
+
+     ProductDetails: [
+    "/public/image/Nandiraj.png",
+    "/public/ProductDetails/xtra-milk-buff.png",
+
+  ],
+  },
+  {
+    id: "xtramilkevergreen",
+    image: "/public/image/Evergreen.png",
+    title: "Xtra Milk Evergreen",
+    description: "Higher yield and better quality milk",
+    longDescription:
+      "Xtra Milk Buff maintains rumen health and boosts milk quality.",
+    details: "",
+    category: "Lactation Feed",
+    price: 1465,
+    oldPrice: 1800,
+    Quantity : "50 Kg",
+
+     ProductDetails: [
+    "/public/image/Evergreen.png",
+    "/public/ProductDetails/xtra-milk-buff.png",
+
+  ],
+  },
+  //  {
+  //   id: "Xtra Milk Mash",
+  //   image: "/public/image/Mash.png",
+  //   title: "Evergreen",
+  //   description: "Higher yield and better quality milk",
+  //   longDescription:
+  //     "Xtra Milk Buff maintains rumen health and boosts milk quality.",
+  //   details: "",
+  //   category: "Lactation Feed",
+  //   price: 1465,
+  //   oldPrice: 1800,
+  //   Quantity : "50 Kg",
+
+  //    ProductDetails: [
+  //   "/public/image/Evergreen.png",
+  //   "/public/ProductDetails/xtra-milk-buff.png",
+
+  // ],
+  // },
 ];

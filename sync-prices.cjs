@@ -24,7 +24,9 @@ const products = [
   { id: "xtramilk", price: 1395, title: "Xtra Milk" },
   { id: "xtramilk8000", price: 1595, title: "Xtra Milk 8000" },
   { id: "xtramilkprime", price: 1895, title: "Xtra Milk Prime" },
-  { id: "xtramilkbuff", price: 1695, title: "Xtra Milk Buff" }
+  { id: "xtramilkbuff", price: 1695, title: "Xtra Milk Buff" },
+  { id: "nandiraj", price: 2150, title: "Nandiraj" },
+  { id: "xtramilkevergreen", price: 1465, title: "Evergreen" },
 ];
 
 async function syncPrices() {

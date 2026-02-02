@@ -1,65 +1,240 @@
 import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 export const generateInvoice = (order) => {
-  const doc = new jsPDF();
+  const doc = new jsPDF("p", "mm", "a4");
 
-  // Header
-  doc.setFontSize(20);
-  doc.text("INVOICE", 105, 20, { align: "center" });
+  /* ================= COLORS ================= */
+  const colors = {
+    primary: [44, 62, 80],       // Dark blue-grey
+    secondary: [127, 140, 141],  // Grey
+    accent: [41, 128, 185],      // Blue
+    success: [39, 174, 96],      // Green
+    danger: [192, 57, 43],       // Red
+    lightGrey: [245, 245, 245],
+  };
 
-  doc.setFontSize(10);
-  doc.text("Holstein Nutrition Private Limited", 20, 30);
-  doc.text("Order ID: " + order.id, 20, 35);
-  doc.text("Date: " + new Date().toLocaleDateString(), 20, 40);
+  /* ================= HELPERS ================= */
+  const formatCurrency = (value) =>
+    `₹${Number(value || 0).toLocaleString("en-IN")}`;
 
-  // Billing Details
-  doc.setFontSize(12);
-  doc.text("Bill To:", 20, 55);
-  doc.setFontSize(10);
-  doc.text(order.shippingAddress?.fullName || "Guest", 20, 60);
-  doc.text(order.shippingAddress?.street || "", 20, 65);
-  doc.text(`${order.shippingAddress?.city || ""}, ${order.shippingAddress?.state || ""} ${order.shippingAddress?.pincode || ""}`, 20, 70);
-  doc.text("Phone: " + (order.shippingAddress?.phone || "N/A"), 20, 75);
-
-  // Table
-  const tableColumn = ["Item", "Quantity", "Price", "Total"];
-  const tableRows = [];
-
-  order.products.forEach((item) => {
-    const rowData = [
-      item.title,
-      item.qty,
-      `INR ${item.price}`,
-      `INR ${item.price * item.qty}`,
-    ];
-    tableRows.push(rowData);
+  const invoiceOrderId = `${order.id.slice(-6).toUpperCase()}`;
+  const invoiceDate = new Date().toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
   });
 
-  doc.autoTable({
-    startY: 85,
-    head: [tableColumn],
+  /* ================= HEADER ================= */
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  doc.setTextColor(...colors.accent);
+  doc.text("HOLSTEIN NUTRITION PVT LTD", 20, 25);
+
+  doc.setFontSize(10);
+  doc.setTextColor(...colors.secondary);
+  doc.text("TAX INVOICE / SALES INVOICE", 20, 32);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.setTextColor(...colors.primary);
+  doc.text("Invoice Date :", 145, 24);
+  doc.text(invoiceDate, 190, 24, { align: "right" });
+
+  doc.text("Order ID :", 145, 30);
+  doc.text(invoiceOrderId, 190, 30, { align: "right" });
+
+  doc.setDrawColor(200, 200, 200);
+  doc.line(20, 38, 190, 38);
+
+  /* ================= ADDRESSES ================= */
+  const startY = 48;
+
+  // Sold By
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(...colors.primary);
+  doc.text("Sold By:", 20, startY);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text("Holstein Nutrition Pvt Ltd", 20, startY + 6);
+  doc.text("1803 18th Floor Omaxe India Trade Tower,", 20, startY + 11);
+  doc.text("New Chandigarh, Punjab - 140901", 20, startY + 16);
+  // doc.text("GSTIN: XXXXX0000X0Z0", 20, startY + 21);
+  doc.text("Email: support@holstein.com", 20, startY + 26);
+
+  // Billed To
+  const ship = order.shippingAddress || {};
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("Billed To:", 110, startY);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(ship.fullName || "Guest Customer", 110, startY + 6);
+
+  const addressText = doc.splitTextToSize(
+    ship.street || ship.address || "",
+    75
+  );
+  doc.text(addressText, 110, startY + 11);
+
+  const addrHeight = addressText.length * 5;
+  doc.text(
+    `${ship.city || ""}, ${ship.state || ""} - ${ship.pincode || ""}`,
+    110,
+    startY + 11 + addrHeight
+  );
+  doc.text(
+    `Phone: ${ship.phone || "N/A"}`,
+    110,
+    startY + 16 + addrHeight
+  );
+
+  /* ================= PAYMENT SUMMARY ================= */
+  const paymentY = Math.max(startY + 35, startY + 20 + addrHeight);
+
+  doc.setFillColor(...colors.lightGrey);
+  doc.rect(20, paymentY, 170, 14, "F");
+
+  const paymentMethod =
+    order.paymentMethod === "razorpay"
+      ? "Online Payment"
+      : "Cash on Delivery";
+
+  const paymentStatus =
+    order.paymentStatus === "paid"
+      ? "Payment Received"
+      : "Payment Pending";
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.setTextColor(...colors.primary);
+  doc.text("Payment Method:", 25, paymentY + 9);
+  doc.setFont("helvetica", "normal");
+  doc.text(paymentMethod, 60, paymentY + 9);
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Payment Status:", 110, paymentY + 9);
+
+  doc.setTextColor(
+    paymentStatus === "Payment Received"
+      ? colors.success[0]
+      : colors.danger[0],
+    paymentStatus === "Payment Received"
+      ? colors.success[1]
+      : colors.danger[1],
+    paymentStatus === "Payment Received"
+      ? colors.success[2]
+      : colors.danger[2]
+  );
+  doc.text(paymentStatus, 145, paymentY + 9);
+
+  /* ================= PRODUCT TABLE ================= */
+  const tableColumns = [
+    "#",
+    "Item Description",
+    "Qty",
+    "Unit Price (₹)",
+    "Line Total (₹)",
+  ];
+
+  const tableRows = order.products.map((item, index) => [
+    index + 1,
+    item.title,
+    item.qty,
+    item.price,
+    item.price * item.qty,
+  ]);
+
+  autoTable(doc, {
+    startY: paymentY + 22,
+    head: [tableColumns],
     body: tableRows,
-    theme: "striped",
-    headStyles: { fillColor: [43, 108, 176] }, // Blue shade
+    theme: "grid",
+    headStyles: {
+      fillColor: colors.accent,
+      textColor: 255,
+      fontStyle: "bold",
+      halign: "center",
+    },
+    styles: {
+      fontSize: 9,
+      textColor: colors.primary,
+    },
+    columnStyles: {
+      0: { halign: "center", cellWidth: 10 },
+      2: { halign: "center", cellWidth: 18 },
+      3: { halign: "right", cellWidth: 30 },
+      4: { halign: "right", cellWidth: 32, fontStyle: "bold" },
+    },
+    margin: { left: 20, right: 20 },
   });
 
-  // Totals
+  /* ================= TOTALS ================= */
   const finalY = doc.lastAutoTable.finalY + 10;
-  doc.text(`Subtotal: INR ${order.subtotal}`, 140, finalY);
-  doc.text(`Shipping: INR ${order.shippingCharge}`, 140, finalY + 5);
+
+  doc.setFontSize(10);
+  doc.setTextColor(...colors.primary);
+
+  doc.text("Subtotal", 130, finalY);
+  doc.text(formatCurrency(order.subtotal), 190, finalY, { align: "right" });
+
+  doc.text("Shipping Charges", 130, finalY + 7);
+  doc.text(
+    formatCurrency(order.shippingCharge),
+    190,
+    finalY + 7,
+    { align: "right" }
+  );
+
+  let y = finalY + 14;
   if (order.walletAmountUsed > 0) {
-    doc.text(`Wallet Used: -INR ${order.walletAmountUsed}`, 140, finalY + 10);
+    doc.setTextColor(...colors.success);
+    doc.text("Wallet / Discount", 130, y);
+    doc.text(
+      `- ${formatCurrency(order.walletAmountUsed)}`,
+      190,
+      y,
+      { align: "right" }
+    );
+    doc.setTextColor(...colors.primary);
+    y += 7;
   }
-  doc.setFontSize(12);
-  doc.setFont(undefined, "bold");
-  doc.text(`Total Amount: INR ${order.totalAmount}`, 140, finalY + 16);
 
-  // Footer
+  doc.setDrawColor(180, 180, 180);
+  doc.line(125, y - 3, 190, y - 3);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text("Total Payable", 130, y + 4);
+  doc.text(formatCurrency(order.totalAmount), 190, y + 4, {
+    align: "right",
+  });
+
+  /* ================= FOOTER ================= */
+  const pageHeight = doc.internal.pageSize.height;
+
+  doc.setFont("helvetica", "italic");
   doc.setFontSize(8);
-  doc.setFont(undefined, "normal");
-  doc.text("Thank you for shopping with Holstein !", 105, 270, { align: "center" });
+  doc.setTextColor(...colors.secondary);
+  doc.text(
+    "This is a system-generated invoice and does not require a signature.",
+    105,
+    pageHeight - 18,
+    { align: "center" }
+  );
 
-  // Save the PDF
-  doc.save(`Invoice_${order.id.slice(-6)}.pdf`);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...colors.primary);
+  doc.text(
+    "Thank you for shopping with Holstein Nutrition!",
+    105,
+    pageHeight - 12,
+    { align: "center" }
+  );
+
+  /* ================= SAVE ================= */
+  doc.save(`Invoice_${invoiceOrderId}.pdf`);
 };

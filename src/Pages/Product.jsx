@@ -50,7 +50,7 @@ const ProductPage = () => {
               id={item.id}
               image={item.image}
               title={item.title}
-              description={item.description}
+              longDescription={item.longDescription}
               price={item.price}
               oldPrice={item.oldPrice}
               quantity={item.Quantity}
