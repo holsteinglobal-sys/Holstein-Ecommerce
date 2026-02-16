@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { MdAdd, MdHistory, MdBlock, MdCheckCircle, MdConfirmationNumber } from 'react-icons/md';
 import toast from 'react-hot-toast';
+import TableSkeleton from '../../Component/Skeletons/TableSkeleton';
 
 const AdminCoupons = () => {
   const [coupons, setCoupons] = useState([]);
@@ -21,20 +22,26 @@ const AdminCoupons = () => {
     value: '',
     isActive: true
   });
-  const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [submitLoading, setSubmitLoading] = useState(false);
   const [activeView, setActiveView] = useState('manage'); // 'manage' or 'history'
 
   useEffect(() => {
     // Fetch Coupons
-    const qCoupons = query(collection(db, 'coupons'), orderBy('createdAt', 'desc'));
+    const qCoupons = query(collection(db, 'coupons'));
     const unsubscribeCoupons = onSnapshot(qCoupons, (snapshot) => {
-      setCoupons(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort client-side to avoid index requirement
+      setCoupons(data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)));
+      setLoading(false);
     });
 
     // Fetch History
-    const qHistory = query(collection(db, 'redemptions'), orderBy('date', 'desc'));
+    const qHistory = query(collection(db, 'redemptions'));
     const unsubscribeHistory = onSnapshot(qHistory, (snapshot) => {
-      setHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      // Sort client-side to avoid index requirement
+      setHistory(data.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0)));
     });
 
     return () => {
@@ -49,7 +56,7 @@ const AdminCoupons = () => {
       toast.error("Please fill all fields");
       return;
     }
-    setLoading(true);
+    setSubmitLoading(true);
     try {
       await addDoc(collection(db, 'coupons'), {
         ...newCoupon,
@@ -64,7 +71,7 @@ const AdminCoupons = () => {
       console.error(error);
       toast.error("Failed to create coupon");
     } finally {
-      setLoading(false);
+      setSubmitLoading(false);
     }
   };
 
@@ -79,6 +86,10 @@ const AdminCoupons = () => {
       toast.error("Failed to update coupon status");
     }
   };
+
+  if (loading) {
+    return <TableSkeleton rows={6} columns={5} />;
+  }
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -147,10 +158,10 @@ const AdminCoupons = () => {
               </div>
               <button 
                 type="submit" 
-                disabled={loading}
+                disabled={submitLoading}
                 className="w-full py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50"
               >
-                {loading ? 'Creating...' : 'Generate Coupon'}
+                {submitLoading ? 'Creating...' : 'Generate Coupon'}
               </button>
             </form>
           </div>

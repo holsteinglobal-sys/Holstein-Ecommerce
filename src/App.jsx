@@ -11,7 +11,6 @@ import Heading2 from './Component/Heading2.jsx'
 import Testimonial from './Component/Testimonial.jsx'
 import Services from './Pages/Services.jsx'
 import ProductDetails from './Pages/ProductDetails/ProductDetails.jsx'
-import { products } from "./Data/product.js";
 import DealerDistributorPg from './Pages/DealerDistributorPg.jsx'
 import Login from './Pages/Login.jsx';
 import Signup from './Pages/Signup.jsx';
@@ -30,6 +29,9 @@ import AdminDashboard from './Pages/Admin/AdminDashboard.jsx';
 import Contact from './Pages/ContactUs/Contact.jsx';
 import SocialMedia from "./Component/SocialMedia.jsx";
 import OrderSuccess from './Pages/OrderSuccess.jsx';
+import NotFound from './Pages/NotFound.jsx';
+import AdminRoute from './Component/AdminRoute.jsx';
+import ForgotPassword from './Pages/ForgotPassword.jsx';
 
 const App = () => {
 
@@ -37,8 +39,9 @@ const App = () => {
 
   const hideLayoutRoutes = [
     "/profile",
-    "/admin/dashboard",
-    "/admin/login",
+    "/my-orders",
+    "/hadmin/dashboard",
+    "/hadmin/login",
   ];
 
   const shouldHideLayout = hideLayoutRoutes.includes(location.pathname);
@@ -56,26 +59,37 @@ const App = () => {
           <Route path='/' element={<Home />} />
           <Route path='/about' element={<About />} />
           <Route path='/dealerdistributor' element={<DealerDistributorPg/>} />
+          {/* <Route path='/product/:id' element={<Product/>} /> */}
           <Route path='/career' element={<Career/>} />
           <Route path='/product' element={<Product/>} />
           <Route path='/blog' element={<Blog/>} />
           <Route path='/contact' element={<Contact/>} />
           <Route
-            path="/product/:id"
-            element={<ProductDetails products={products} />}
+            path="/product/:slug"
+            element={<ProductDetails />}
           />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/profile" element={<Profile />} />
-       <Route path="/cart" element={<Cart />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/my-orders" element={<Profile initialTab="orders" />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/hadmin/login" element={<AdminLogin />} />
+          <Route 
+            path="/hadmin/dashboard" 
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            } 
+          />
           <Route path="/order-success" element={<OrderSuccess />} />
+          <Route path="*" element={<NotFound />} />
 
         </Routes>
 
-          <SocialMedia/>
-         {!shouldHideLayout && <SocialMedia />}
+         
+        
           {!shouldHideLayout && <Footer />}
         {/* <ToastContainer /> */}
          <Toaster position="top-center" reverseOrder={false} />

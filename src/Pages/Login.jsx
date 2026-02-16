@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 // import { toast } from 'react-toastify';
 import toast from "react-hot-toast";
@@ -10,6 +11,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { login,googleSignIn } = useAuth();
   const navigate = useNavigate();
+
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -80,11 +83,11 @@ const Login = () => {
       </div>
 
       {/* Password */}
-      <div>
+      <div className="relative">
         <input
           id="password"
           name="password"
-          type="password"
+          type={showPassword ? "text" : "password"}
           autoComplete="current-password"
           required
           placeholder="Password"
@@ -96,6 +99,22 @@ const Login = () => {
                      focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400
                      transition-all duration-200"
         />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-600 focus:outline-none"
+        >
+          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+        </button>
+      </div>
+
+      <div className="flex justify-end pr-2">
+        <Link 
+          to="/forgot-password" 
+          className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
+        >
+          Forgot Password?
+        </Link>
       </div>
 
       {/* Button */}

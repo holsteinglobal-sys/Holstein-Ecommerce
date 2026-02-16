@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { CgProfile } from 'react-icons/cg';
 import {FaUser ,FaEdit ,FaEnvelope ,FaPhoneAlt ,FaCalendar
 } from "react-icons/fa";
+import TableSkeleton from '../../Component/Skeletons/TableSkeleton';
 
 
 const ProfileInfo = () => {
@@ -13,6 +14,7 @@ const ProfileInfo = () => {
     const [name, setName] = useState(currentUser?.displayName || '');
     const [phone, setPhone] = useState('');
     const [loading, setLoading] = useState(false);
+    const [pageLoading, setPageLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
 
 
@@ -24,6 +26,7 @@ const ProfileInfo = () => {
                     setName(data.displayName || '');
                     setPhone(data.phone || '');
                 }
+                setPageLoading(false);
             });
             return unsubscribe;
         }
@@ -58,6 +61,10 @@ const ProfileInfo = () => {
 // const getDefaultAvatar = (name) =>
 //   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "User")}&background=10B981&color=fff`;
 
+
+    if (pageLoading) {
+        return <div className="p-8"><TableSkeleton rows={4} columns={2} /></div>;
+    }
 
     return (
       <>

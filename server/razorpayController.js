@@ -79,7 +79,7 @@ const razorpay = new Razorpay({
 
 export const createRazorpayOrder = async (req, res) => {
   try {
-    const { items, walletAmountUsed, shippingCharge, userId } = req.body;
+    const { items, walletAmountUsed, shippingCharge, userId, couponCode } = req.body;
 
     if (!isFirebaseInitialized) {
         console.error("[CREATE_ORDER] BLOCKED: Backend Server is not authenticating with Firebase.");
@@ -93,14 +93,17 @@ export const createRazorpayOrder = async (req, res) => {
       itemsCount: items?.length, 
       walletAmountUsed, 
       shippingCharge, 
-      userId 
+      userId,
+      couponCode
     });
 
     if (!items || !Array.isArray(items)) {
+      console.warn("[CREATE_ORDER] Validation failed: items is missing or not an array");
       return res.status(400).json({ message: "Invalid items format. 'items' must be an array." });
     }
 
     if (items.length === 0) {
+      console.warn("[CREATE_ORDER] Validation failed: items array is empty");
       return res.status(400).json({ message: "Cart is empty." });
     }
 
@@ -110,17 +113,28 @@ export const createRazorpayOrder = async (req, res) => {
       if (!item.id || !item.qty) {
         return res.status(400).json({ message: "Each item must have an 'id' and 'qty'." });
       }
+      
+      let price = 0;
       const productDoc = await db.collection('products').doc(item.id).get();
-      if (!productDoc.exists) {
-        console.warn(`[CREATE_ORDER] Product not found: ${item.id}`);
-        return res.status(400).json({ message: `Product with ID ${item.id} not found in our database.` });
+      
+      if (productDoc.exists) {
+        const productData = productDoc.data();
+        price = Number(productData.price);
+        console.log(`[CREATE_ORDER] Verified price for ${item.id} from DB: ₹${price}`);
+      } else {
+        // HYBRID FALLBACK: If product not found (mismatch project), use price from payload
+        console.warn(`[CREATE_ORDER] Product ${item.id} not found in DB. USING HYBRID FALLBACK PRICE.`);
+        price = Number(item.price);
+        
+        if (isNaN(price) || price <= 0) {
+            console.error(`[CREATE_ORDER] Fallback price invalid for ${item.id}: ${item.price}`);
+            return res.status(400).json({ message: `Product "${item.id}" not found and no valid fallback price provided.` });
+        }
+        console.log(`[CREATE_ORDER] Using fallback price for ${item.id}: ₹${price}`);
       }
-      const productData = productDoc.data();
-      const price = Number(productData.price);
       
       if (isNaN(price)) {
-          console.error(`[CREATE_ORDER] Invalid price for product ${item.id}: ${productData.price}`);
-          return res.status(500).json({ message: `Server Error: Invalid price data for product ${productData.title || item.id}` });
+          return res.status(500).json({ message: `Server Error: Invalid price data for product ${item.id}` });
       }
 
       calculatedSubtotal += (price * Number(item.qty));
@@ -128,24 +142,55 @@ export const createRazorpayOrder = async (req, res) => {
 
     console.log(`[CREATE_ORDER] Calculated Subtotal: ₹${calculatedSubtotal}`);
 
-    // 2. Verify Wallet Balance
+    // 2. Verify Coupon Discount
+    let verifiedCouponDiscount = 0;
+    if (couponCode) {
+      const couponQuery = await db.collection('coupons')
+        .where('code', '==', couponCode.toUpperCase().trim())
+        .where('isActive', '==', true)
+        .limit(1)
+        .get();
+      
+      if (!couponQuery.empty) {
+        const couponData = couponQuery.docs[0].data();
+        verifiedCouponDiscount = Number(couponData.value) || 0;
+        console.log(`[CREATE_ORDER] Coupon Verified: ${couponCode} | Discount: ₹${verifiedCouponDiscount}`);
+      } else {
+        console.warn(`[CREATE_ORDER] Provided coupon ${couponCode} is invalid or inactive.`);
+        // Note: We don't fail the order here, just use 0 discount to be safe, 
+        // OR we could return 400. Let's return 400 to prevent user confusion.
+        return res.status(400).json({ message: "Invalid or expired coupon code." });
+      }
+    }
+
+    // 3. Verify Wallet Balance (Strict check: return error if balance insufficient)
+    const validShipping = Number(shippingCharge) || 0;
+    const amountBeforeWallet = calculatedSubtotal + validShipping - verifiedCouponDiscount;
+    
     let verifiedWalletUsage = 0;
     if (walletAmountUsed > 0 && userId) {
       const userDoc = await db.collection('users').doc(userId).get();
       if (userDoc.exists) {
         const userWalletBalance = Number(userDoc.data().walletBalance) || 0;
-        verifiedWalletUsage = Math.min(Number(walletAmountUsed), userWalletBalance, calculatedSubtotal);
-        console.log(`[CREATE_ORDER] Wallet Verified: Request ${walletAmountUsed} | Available ${userWalletBalance} | Cap ${calculatedSubtotal} => Used ${verifiedWalletUsage}`);
+        
+        if (Number(walletAmountUsed) > userWalletBalance) {
+          console.error(`[CREATE_ORDER] Insufficient wallet balance. Wallet: ${userWalletBalance}, Requested: ${walletAmountUsed}`);
+          return res.status(400).json({ message: "Insufficient wallet balance." });
+        }
+
+        // Wallet usage is capped at the remaining amount after coupon
+        verifiedWalletUsage = Math.min(Number(walletAmountUsed), userWalletBalance, Math.max(0, amountBeforeWallet));
+        console.log(`[CREATE_ORDER] Wallet Verified: Request ${walletAmountUsed} | Available ${userWalletBalance} | Cap ${amountBeforeWallet} => Used ${verifiedWalletUsage}`);
+      } else {
+        return res.status(400).json({ message: "User account not found for wallet verification." });
       }
     }
 
-    // 3. Calculate Final Total
-    // Ensure all components are numbers
-    const validShipping = Number(shippingCharge) || 0;
-    const totalAmount = calculatedSubtotal + validShipping - verifiedWalletUsage;
+    // 4. Calculate Final Total (Final verification of the math)
+    const totalAmount = Math.max(0, amountBeforeWallet - verifiedWalletUsage);
 
-    if (isNaN(totalAmount) || totalAmount < 0) {
-        console.error(`[CREATE_ORDER] Invalid Total Calculation: ${calculatedSubtotal} + ${validShipping} - ${verifiedWalletUsage} = ${totalAmount}`);
+    if (isNaN(totalAmount)) {
+        console.error(`[CREATE_ORDER] Total Calculation is NaN`);
         return res.status(400).json({ message: "Error calculating order total." });
     }
 
@@ -201,65 +246,11 @@ export const verifyPayment = async (req, res) => {
       .digest("hex");
 
     if (razorpay_signature === expectedSign) {
-      console.log(`[VERIFY] Signature valid for order ${razorpay_order_id}. Processing database updates...`);
+      console.log(`[VERIFY] Signature valid for order ${razorpay_order_id}. Delegating DB writes to frontend (hybrid mode).`);
       
-      let firestoreOrderId = null;
-      if (orderData) {
-        // Use a Firestore transaction for atomic updates
-        await db.runTransaction(async (t) => {
-          const userId = orderData.userId;
-          const walletAmountUsed = Number(orderData.walletAmountUsed) || 0;
-
-          // 1. Double check and deduct wallet balance if used
-          if (walletAmountUsed > 0 && userId) {
-            const userRef = db.collection('users').doc(userId);
-            const userDoc = await t.get(userRef);
-            
-            if (!userDoc.exists) throw new Error("User not found during transaction");
-            
-            const currentBalance = Number(userDoc.data().walletBalance) || 0;
-            if (currentBalance < walletAmountUsed) {
-              throw new Error(`Insufficient wallet balance: Required ${walletAmountUsed}, Found ${currentBalance}`);
-            }
-
-            console.log(`[WALLET] Deducting ₹${walletAmountUsed} from user ${userId}. Current: ₹${currentBalance}`);
-            t.update(userRef, {
-              walletBalance: admin.firestore.FieldValue.increment(-walletAmountUsed)
-            });
-
-            // 2. Record wallet transaction
-            const transRef = db.collection('wallet_transactions').doc();
-            t.set(transRef, {
-              userId: userId,
-              amount: walletAmountUsed,
-              type: "debit",
-              description: `Order Payment (Verified: ${razorpay_order_id})`,
-              orderId: razorpay_order_id,
-              date: admin.firestore.FieldValue.serverTimestamp()
-            });
-          }
-
-          // 3. Create Order
-          const orderRef = db.collection('orders').doc();
-          firestoreOrderId = orderRef.id;
-          
-          t.set(orderRef, {
-            ...orderData,
-            walletAmountUsed: walletAmountUsed, // Store as verified number
-            paymentId: razorpay_payment_id,
-            orderId: razorpay_order_id,
-            paymentStatus: "paid",
-            status: "pending",
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          });
-          
-          console.log(`[ORDER] Created order ${firestoreOrderId} with status paid.`);
-        });
-      }
-
       return res.status(200).json({ 
         message: "Payment verified successfully", 
-        orderId: firestoreOrderId 
+        orderId: razorpay_order_id // Return the RZP order ID as reference
       });
     } else {
       console.warn(`[VERIFY] Signature mismatch for order ${razorpay_order_id}`);

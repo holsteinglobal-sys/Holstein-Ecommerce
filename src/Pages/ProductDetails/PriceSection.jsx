@@ -14,6 +14,9 @@ const PriceSection = ({ product }) => {
   const [pincode, setPincode] = useState('');
   const [checkStatus, setCheckStatus] = useState(null); // null, 'checking', 'available', 'unavailable'
   const [shippingMsg, setShippingMsg] = useState('');
+    const [cartCounter, setCartCounter] = useState(0);
+    console.log(setCartCounter);
+    
 
   const {
     price,
@@ -38,18 +41,23 @@ const PriceSection = ({ product }) => {
           // Check if pincode exists in any rule's array
           const q = query(
               collection(db, "shipping_rules"), 
-              where("pinCodes", "array-contains", pincode),
-              where("isActive", "==", true)
+              where("pinCodes", "array-contains", pincode)
           );
           const querySnapshot = await getDocs(q);
           
           if(!querySnapshot.empty) {
               const rule = querySnapshot.docs[0].data();
-              setCheckStatus('available');
-              setShippingMsg(`Available! Shipping: ₹${rule.shippingCharge}`);
+              if (rule.isActive) {
+                  setCheckStatus('available');
+                  setShippingMsg(`Available! Shipping: ₹${rule.shippingCharge}`);
+              } else {
+                  setCheckStatus('unavailable');
+                  setShippingMsg("Delivery temporarily unavailable in this location");
+              }
           } else {
-              setCheckStatus('unavailable');
-              setShippingMsg("Not available in this area.");
+              // Fallback for unknown PIN codes
+              setCheckStatus('available');
+              setShippingMsg("Free Shipping Available");
           }
       } catch (error) {
           console.error(error);
@@ -62,6 +70,7 @@ const PriceSection = ({ product }) => {
     <div className="mt-4 p-6 rounded-2xl bg-base-200 flex flex-col justify-between">
       {/* TOP CONTENT */}
       <div className="space-y-5">
+        
         {/* Price */}
         <div className="flex items-end gap-4">
           <span className="text-4xl font-bold text-black">₹{price}</span>
@@ -144,6 +153,7 @@ const PriceSection = ({ product }) => {
           className="btn rounded-full btn-primary flex-1"
           onClick={() => {
             addToCart(product);
+            setCartCounter(prev => prev + 1);
               //  toast.success("Product added to cart");
              
           }}

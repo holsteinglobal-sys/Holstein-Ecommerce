@@ -11,3 +11,9 @@
   -ms-overflow-style: none;  /* IE & Edge */
   scrollbar-width: none;     /* Firefox */
 }
+
+/* focused checkout: hide nav and footer */
+body.checkout-active nav,
+body.checkout-active footer {
+  display: none !important;
+}

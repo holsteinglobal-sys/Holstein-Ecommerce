@@ -5,17 +5,20 @@ import toast from 'react-hot-toast';
 import { FaUser, FaEye, FaSearch, FaCircle } from 'react-icons/fa';
 import { IoCloseSharp } from 'react-icons/io5';
 import {FaShoppingCart} from  "react-icons/fa";
+import TableSkeleton from '../../Component/Skeletons/TableSkeleton';
 
 const AdminUsers = ({ searchTerm = '' }) => {
     const [users, setUsers] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState([]);
     const [selectedUser, setSelectedUser] = useState(null);
     const [userOrders, setUserOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
             const userData = snapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
             setUsers(userData);
+            setLoading(false);
         });
         return unsubscribe;
     }, []);
@@ -60,6 +63,10 @@ const AdminUsers = ({ searchTerm = '' }) => {
         setSelectedUser(user);
         await fetchUserOrders(user.id);
     };
+
+    if (loading) {
+        return <TableSkeleton rows={8} columns={5} />;
+    }
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500 m-3">

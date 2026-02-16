@@ -10,10 +10,9 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
     function isAdmin() {
-       // Check if user has admin role in their user doc or matches hardcoded email
+       // Check if user has admin role in their user doc
        return (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin")
-              || request.auth.token.email == "admin@gmail.com";
+               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin");
     }
 
     // Users collection

@@ -3,17 +3,23 @@ import { db } from '../../lib/firebase';
 import { collection, addDoc, deleteDoc, doc, onSnapshot, updateDoc } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { MdDelete, MdLocalShipping, MdAddLocationAlt } from 'react-icons/md';
+import TableSkeleton from '../../Component/Skeletons/TableSkeleton';
+import { AccordionItem } from '../../Component/Accordion';
 
 const AdminShipping = () => {
     const [rules, setRules] = useState([]);
     const [newState, setNewState] = useState('');
     const [newPincodes, setNewPincodes] = useState('');
     const [newCharge, setNewCharge] = useState('');
+    const [isActive, setIsActive] = useState(true);
     const [loading, setLoading] = useState(false);
+    const [pageLoading, setPageLoading] = useState(true);
+    const [openPinsId, setOpenPinsId] = useState(null);
 
     useEffect(() => {
         const unsubscribe = onSnapshot(collection(db, "shipping_rules"), (snapshot) => {
             setRules(snapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+            setPageLoading(false);
         });
         return unsubscribe;
     }, []);
@@ -28,12 +34,13 @@ const AdminShipping = () => {
                 state: newState,
                 pinCodes: pinArray,
                 shippingCharge: Number(newCharge),
-                isActive: true
+                isActive: isActive
             });
             
             setNewState('');
             setNewPincodes('');
             setNewCharge('');
+            setIsActive(true);
             toast.success("Serviceable Area Added");
         } catch (error) {
             console.error(error);
@@ -55,6 +62,10 @@ const AdminShipping = () => {
             isActive: !rule.isActive
         });
     };
+
+    if (pageLoading) {
+        return <TableSkeleton rows={6} columns={4} />;
+    }
 
     return (
         <div className="space-y-8">
@@ -124,6 +135,18 @@ const AdminShipping = () => {
                                     </label>
                                 </div>
 
+                                <div className="form-control">
+                                    <label className="label cursor-pointer justify-start gap-4">
+                                        <input 
+                                            type="checkbox" 
+                                            className="toggle toggle-success" 
+                                            checked={isActive}
+                                            onChange={(e) => setIsActive(e.target.checked)}
+                                        />
+                                        <span className="label-text font-medium">Enable Delivery for this Area</span>
+                                    </label>
+                                </div>
+
                                 <div className="card-actions justify-end mt-4">
                                     <button 
                                         type="submit" 
@@ -169,19 +192,29 @@ const AdminShipping = () => {
                                             ₹{rule.shippingCharge} <span className="text-sm font-normal text-gray-500">per order</span>
                                         </div>
 
-                                        <div className="collapse collapse-arrow border border-base-300 bg-base-100 rounded-box">
-                                            <input type="checkbox" /> 
-                                            <div className="collapse-title text-sm font-medium">
-                                                View {rule.pinCodes?.length} PIN Codes
-                                            </div>
-                                            <div className="collapse-content"> 
-                                                <div className="flex flex-wrap gap-1 mt-2">
-                                                    {rule.pinCodes?.slice(0, 20).map((pin, i) => (
-                                                        <span key={i} className="badge badge-ghost badge-sm">{pin}</span>
+                                        <div className="mt-4">
+                                            <AccordionItem 
+                                                title={`View ${rule.pinCodes?.length || 0} PIN Codes`}
+                                                activeColor="bg-emerald-500"
+                                                isOpen={openPinsId === rule.id}
+                                                onClick={() => setOpenPinsId(openPinsId === rule.id ? null : rule.id)}
+                                            >
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {rule.pinCodes?.slice(0, 50).map((pin, i) => (
+                                                        <span key={i} className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-lg text-[10px] font-bold border border-emerald-100/50">
+                                                            {pin}
+                                                        </span>
                                                     ))}
-                                                    {rule.pinCodes?.length > 20 && <span className="badge badge-ghost badge-sm">+{rule.pinCodes.length - 20} more</span>}
+                                                    {rule.pinCodes?.length > 50 && (
+                                                        <span className="px-2 py-1 bg-gray-50 text-gray-400 rounded-lg text-[10px] font-bold">
+                                                            +{rule.pinCodes.length - 50} more
+                                                        </span>
+                                                    )}
+                                                    {(!rule.pinCodes || rule.pinCodes.length === 0) && (
+                                                        <span className="text-gray-400 italic text-xs">No PIN codes defined</span>
+                                                    )}
                                                 </div>
-                                            </div>
+                                            </AccordionItem>
                                         </div>
 
                                         <div className="card-actions justify-end mt-4">

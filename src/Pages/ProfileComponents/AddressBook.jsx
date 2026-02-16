@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import { MdDelete, MdEdit, MdLocationOn, MdAdd } from 'react-icons/md';
 import {FaPhoneAlt } from "react-icons/fa";
+import TableSkeleton from '../../Component/Skeletons/TableSkeleton';
 
 
 const AddressBook = () => {
@@ -12,6 +13,7 @@ const AddressBook = () => {
     const [addresses, setAddresses] = useState([]);
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [pageLoading, setPageLoading] = useState(true);
     const [formData, setFormData] = useState({
         fullName: '',
         street: '',
@@ -26,6 +28,7 @@ const AddressBook = () => {
         const q = collection(db, "users", currentUser.uid, "addresses");
         const unsubscribe = onSnapshot(q, (snapshot) => {
             setAddresses(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            setPageLoading(false);
         });
         return unsubscribe;
     }, [currentUser]);
@@ -83,6 +86,10 @@ const AddressBook = () => {
         setEditingId(null);
         setFormData({ fullName: '', street: '', city: '', state: '', pincode: '', phone: '' });
     };
+
+    if (pageLoading) {
+        return <div className="p-4"><TableSkeleton rows={4} columns={2} /></div>;
+    }
 
    return (
   <div className="space-y-8 m-3">

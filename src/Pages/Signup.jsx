@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 // import { toast } from 'react-toastify';
 import toast from "react-hot-toast";
@@ -10,6 +11,8 @@ const Signup = () => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { signup,googleSignIn  } = useAuth();
   const navigate = useNavigate();
@@ -117,38 +120,56 @@ const Signup = () => {
       />
 
       {/* Password */}
-      <input
-        id="password"
-        name="password"
-        type="password"
-        autoComplete="new-password"
-        required
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="w-full px-5 py-3 text-sm text-gray-900
-                   border border-gray-300 rounded-full
-                   placeholder-gray-400
-                   focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400
-                   transition-all duration-200"
-      />
+      <div className="relative">
+        <input
+          id="password"
+          name="password"
+          type={showPassword ? "text" : "password"}
+          autoComplete="new-password"
+          required
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="w-full px-5 py-3 text-sm text-gray-900
+                     border border-gray-300 rounded-full
+                     placeholder-gray-400
+                     focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400
+                     transition-all duration-200"
+        />
+        <button
+          type="button"
+          onClick={() => setShowPassword(!showPassword)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-600 focus:outline-none"
+        >
+          {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+        </button>
+      </div>
 
       {/* Confirm Password */}
-      <input
-        id="confirm-password"
-        name="confirm-password"
-        type="password"
-        autoComplete="new-password"
-        required
-        placeholder="Confirm Password"
-        value={confirmPassword}
-        onChange={(e) => setConfirmPassword(e.target.value)}
-        className="w-full px-5 py-3 text-sm text-gray-900
-                   border border-gray-300 rounded-full
-                   placeholder-gray-400
-                   focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400
-                   transition-all duration-200"
-      />
+      <div className="relative">
+        <input
+          id="confirm-password"
+          name="confirm-password"
+          type={showConfirmPassword ? "text" : "password"}
+          autoComplete="new-password"
+          required
+          placeholder="Confirm Password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className="w-full px-5 py-3 text-sm text-gray-900
+                     border border-gray-300 rounded-full
+                     placeholder-gray-400
+                     focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400
+                     transition-all duration-200"
+        />
+        <button
+          type="button"
+          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-indigo-600 focus:outline-none"
+        >
+          {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+        </button>
+      </div>
 
       {/* Button */}
       <button

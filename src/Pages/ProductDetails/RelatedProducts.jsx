@@ -21,7 +21,10 @@ const RelatedProducts = ({ products }) => {
               price={item.price}
               oldPrice={item.oldPrice}
               quantity={item.Quantity}
-
+              category={item.category}
+              subcategory={item.subcategory}
+              slug={item.slug}
+             
           />
         ))}
       </div>

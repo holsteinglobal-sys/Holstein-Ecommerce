@@ -5,6 +5,7 @@ import { toast } from 'react-toastify';
 import { FaShoppingCart } from "react-icons/fa";
 import { RiDashboardFill } from "react-icons/ri";
 import { FaPowerOff } from "react-icons/fa6";
+import {MdShoppingBag} from "react-icons/md";
 
 const ProfileAvtar = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -59,16 +60,16 @@ const ProfileAvtar = () => {
                <RiDashboardFill className='text-xl' />
                 Dashboard
               </button>
-              <button
-                onClick={() => {
-                  navigate('/cart');
-                  setDropdownOpen(false);
-                }}
-                className="btn btn-wide btn-outline w-full"
-              >
-<FaShoppingCart className='text-xl'/>
-                Cart
-              </button>
+                      <button
+                        onClick={() => {
+                          navigate('/my-orders');
+                          setDropdownOpen(false);
+                        }}
+                        className="btn btn-wide btn-outline w-full"
+                      >
+                      <MdShoppingBag className='text-xl'/>
+                        My Order
+                      </button>
               <button
                 onClick={handleLogout}
                 className="btn btn-soft btn-secondary w-full"

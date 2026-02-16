@@ -4,9 +4,11 @@ import {
   MdDashboard,
   MdPerson,
   MdLocationOn,
-  MdShoppingBag,
   MdAccountBalanceWallet,
   MdLogout,
+  MdMenu,
+  MdClose,
+  MdShoppingBag 
 } from "react-icons/md";
 
 import { useNavigate,Link } from "react-router-dom";
@@ -19,10 +21,12 @@ import { FaHome, FaSignOutAlt } from "react-icons/fa";
 
 
 
-const Profile = () => {
+
+const Profile = ({ initialTab = 'profile' }) => {
   const { currentUser, logout } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   if (!currentUser) {
     navigate('/login');
@@ -85,8 +89,19 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 flex font-sans">
+        {/* MOBILE SIDEBAR TOGGLE */}
+        <button 
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="lg:hidden fixed bottom-6 right-6 z-50 w-14 h-14 bg-emerald-500 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl hover:bg-emerald-600 transition-all active:scale-95"
+        >
+          {isSidebarOpen ? <MdClose /> : <MdMenu />}
+        </button>
+
         {/* SIDEBAR */}
-        <aside className="w-70 bg-white border-r border-gray-200 flex flex-col fixed h-full z-20">
+        <aside className={`
+          w-70 bg-white border-r border-gray-200 flex flex-col fixed h-full z-40 transition-transform duration-300 lg:translate-x-0
+          ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'}
+        `}>
             {/* Logo Area */}
             <div className="h-23 flex items-center px-6 border-b border-gray-100">
                 {/* <span className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -183,7 +198,7 @@ const Profile = () => {
         </aside>
 
         {/* MAIN CONTENT AREA */}
-        <main className="flex-1 ml-64 p-8 overflow-y-auto">
+        <main className="flex-1 lg:ml-64 p-4 md:p-8 overflow-y-auto w-full pt-28 lg:pt-8">
              {renderContent()}
         </main>
     </div>

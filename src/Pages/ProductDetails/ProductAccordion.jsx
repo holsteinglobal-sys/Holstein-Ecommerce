@@ -1,41 +1,28 @@
+import React from 'react';
+import Accordion from '../../Component/Accordion';
+
 const ProductAccordion = ({ longDescription }) => {
+  const items = [
+    {
+      title: "Product Details",
+      content: longDescription || "No additional details available."
+    },
+    {
+      title: "Payment Methods",
+      content: "We support a variety of payment options including UPI (PhonePe, Google Pay, Paytm), Credit/Debit Cards, Net Banking, and Cash on Delivery (COD) for eligible regions."
+    },
+    {
+      title: "Good for the Planet",
+      content: "Holstein Nutrition is committed to sustainability. Our packaging is designed to be eco-friendly, and our production processes prioritize minimal environmental impact."
+    }
+  ];
+
   return (
-    <div className="mt-20  join join-vertical w-full">
-      <div className="collapse rounded-2xl collapse-arrow join-item border">
-        <input type="radio" name="accordion" defaultChecked />
-        <div className="collapse-title  font-medium">Details</div>
-        <div className="collapse-content text-sm text-gray-600">
-          {longDescription || "No additional details available."}
-        </div>
-      </div>
-
-      <div className="collapse  rounded-2xl collapse-arrow join-item border">
-        <input type="radio" name="accordion" />
-        <div className="collapse-title font-medium">Shipping</div>
-        <div className="collapse-content text-sm text-gray-600">
-          Free shipping on orders above ₹999.
-        </div>
-      </div>
-
-      <div className="collapse rounded-2xl collapse-arrow join-item border">
-        <input type="radio" name="accordion" />
-        <div className="collapse-title font-medium">Payment methods</div>
-        <div className="collapse-content text-sm text-gray-600">
-          UPI, Cards, Net Banking, COD available.
-        </div>
-      </div>
-
-      <div className="collapse rounded-2xl collapse-arrow join-item border">
-        <input type="radio" name="accordion" />
-        <div className="collapse-title font-medium">
-          Good for the Planet
-        </div>
-        <div className="collapse-content rounded-2xl text-sm text-gray-600">
-          Eco-friendly materials and sustainable packaging.
-        </div>
-      </div>
+    <div className="mt-20 w-full">
+      <Accordion items={items} />
     </div>
   );
 };
 
 export default ProductAccordion;
+

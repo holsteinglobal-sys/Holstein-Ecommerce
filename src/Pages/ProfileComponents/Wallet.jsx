@@ -3,6 +3,8 @@ import { MdAccountBalanceWallet, MdHistory, MdTrendingUp, MdTrendingDown } from 
 import { useAuth } from '../../context/AuthContext';
 import { db } from '../../lib/firebase';
 import { doc, onSnapshot, collection, query, where, orderBy } from 'firebase/firestore';
+import { FaRupeeSign } from "react-icons/fa";
+import TableSkeleton from '../../Component/Skeletons/TableSkeleton';
 
 const Wallet = () => {
     const { currentUser } = useAuth();
@@ -25,11 +27,12 @@ const Wallet = () => {
         // 2. Query transactions
         const q = query(
             collection(db, "wallet_transactions"),
-            where("userId", "==", currentUser.uid),
-            orderBy("date", "desc")
+            where("userId", "==", currentUser.uid)
         );
         const unsubscribeTransactions = onSnapshot(q, (snapshot) => {
-            setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            const txs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // Sort client-side to avoid index requirement
+            setTransactions(txs.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0)));
         });
 
         return () => {
@@ -37,6 +40,10 @@ const Wallet = () => {
             unsubscribeTransactions();
         };
     }, [currentUser]);
+
+    if (loading) {
+        return <TableSkeleton rows={6} columns={3} />;
+    }
 
     return (
         <div className="space-y-6 m-3 animate-fadeIn">
@@ -49,9 +56,9 @@ const Wallet = () => {
                 <div className="card bg-gradient-to-r from-primary to-indigo-600 text-white shadow-xl overflow-hidden relative">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full translate-x-16 -translate-y-16"></div>
                     <div className="card-body relative z-10">
-                        <h2 className="card-title text-white/80 text-sm uppercase tracking-wider">Available Balance</h2>
-                        <div className="text-5xl font-extrabold mt-2 flex items-baseline gap-1">
-                            <span className="text-2xl font-medium">₹</span>
+                        <h2 className="card-title text-white/80 text-xs md:text-sm uppercase tracking-wider">Available Balance</h2>
+                        <div className="text-3xl md:text-5xl font-extrabold mt-2 flex items-baseline gap-1">
+                            <span className="text-xl md:text-2xl font-medium"><FaRupeeSign /></span>
                             {balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </div>
                         <div className="card-actions justify-end mt-4">
@@ -89,24 +96,24 @@ const Wallet = () => {
                         <tbody className="divide-y divide-gray-50">
                             {transactions.map(tx => (
                                 <tr key={tx.id} className="hover:bg-gray-50/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.type === 'credit' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                                                {tx.type === 'credit' ? <MdTrendingUp /> : <MdTrendingDown />}
+                                    <td className="px-3 md:px-6 py-4">
+                                        <div className="flex items-center gap-3 md:gap-4">
+                                            <div className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center flex-shrink-0 ${tx.type === 'credit' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                                                {tx.type === 'credit' ? <MdTrendingUp size={16} /> : <MdTrendingDown size={16} />}
                                             </div>
-                                            <div>
-                                                <div className="font-bold text-gray-800 text-sm">{tx.description}</div>
-                                                <div className="text-[10px] text-gray-400 font-medium">
-                                                    {tx.date?.toDate ? tx.date.toDate().toLocaleString() : 'Processing...'}
+                                            <div className="min-w-0">
+                                                <div className="font-bold text-gray-800 text-xs md:text-sm truncate">{tx.description}</div>
+                                                <div className="text-[9px] md:text-[10px] text-gray-400 font-medium">
+                                                    {tx.date?.toDate ? tx.date.toDate().toLocaleDateString() : 'Processing...'}
                                                 </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className={`font-bold ${tx.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
+                                    <td className="px-3 md:px-6 py-4 text-right">
+                                        <div className={`font-bold text-sm md:text-base ${tx.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
                                             {tx.type === 'credit' ? '+' : '-'} ₹{tx.amount}
                                         </div>
-                                        <div className="text-[10px] text-gray-400">ID: {tx.id.slice(0, 8)}...</div>
+                                        {/* <div className="text-[9px] md:text-[10px] text-gray-400">ID: {tx.id.slice(0, 6)}...</div> */}
                                     </td>
                                 </tr>
                             ))}

@@ -60,7 +60,7 @@ const Footer = () => {
       const couponData = couponDoc.data();
 
       if ((couponData.redemptionCount || 0) > 0) {
-        toast.error("Coupon code already redeemed!");
+        toast.error("Coupon already redeemed!");
         setLoading(false);
         return;
       }
@@ -136,19 +136,22 @@ const Footer = () => {
             </p>
             <div className="flex gap-3">
               {[
-                { icon: FaFacebookF, color: "hover:text-blue-600" },
-                { icon: FaXTwitter, color: "hover:text-black" },
-                { icon: FaInstagram, color: "hover:text-pink-600" },
-                { icon: FaLinkedinIn, color: "hover:text-blue-700" },
-                { icon: FaWhatsapp, color: "hover:text-green-600" },
-                { icon: FaYoutube , color: "hover:text-red-600" }
+                { icon: FaFacebookF, color: "hover:text-blue-600", link: "#" },
+                { icon: FaXTwitter, color: "hover:text-black", link: "#" },
+                { icon: FaInstagram, color: "hover:text-pink-600", link: "https://www.instagram.com/holsteinfeeds/" },
+                { icon: FaLinkedinIn, color: "hover:text-blue-700", link: "#" },
+                { icon: FaWhatsapp, color: "hover:text-green-600", link: "#" },
+                { icon: FaYoutube , color: "hover:text-red-600", link: "#" }
               ].map((social, i) => (
-                <span
+                <a
                   key={i}
+                  href={social.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className={`w-10 h-10 rounded-lg  border border-gray-100 flex items-center justify-center text-gray-500 transition-all duration-300 cursor-pointer ${social.color} hover:bg-white hover:shadow-md hover:-translate-y-1`}
                 >
                   <social.icon size={18} />
-                </span>
+                </a>
               ))}
             </div>
           </div>
@@ -157,10 +160,17 @@ const Footer = () => {
           <div>
             <h4 className="text-gray-900 font-bold text-base mb-6 uppercase tracking-wider">Company</h4>
             <ul className="space-y-3 text-sm">
-              {["Home", "Products", "Dealer & Distributor", "Career", "Contact Us"].map((link) => (
-                <li key={link}>
-                  <Link to={`/${link.toLowerCase().replace(/ & /g, '').replace(/ /g, '')}`} className="hover:text-primary transition-colors">
-                    {link}
+              {[
+                { name: "Home", path: "/" },
+                { name: "Products", path: "/product" },
+                { name: "Dealer & Distributor", path: "/dealerdistributor" },
+                { name: "Career", path: "/career" },
+                { name: "Contact Us", path: "/contact" },
+                { name: "Blog", path: "/blog" }
+              ].map((link) => (
+                <li key={link.name}>
+                  <Link to={link.path} className="hover:text-primary transition-colors">
+                    {link.name}
                   </Link>
                 </li>
               ))}

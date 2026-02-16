@@ -7,6 +7,9 @@ import {
 } from "../../services/adminService";
 import toast from "react-hot-toast";
 import { getDirectGDriveUrl } from "../../utils/googleDriveConverter";
+import TableSkeleton from "../../Component/Skeletons/TableSkeleton";
+import { CKEditor } from "@ckeditor/ckeditor5-react";
+import ClassicEditor from "@ckeditor/ckeditor5-build-classic";
 
 const AdminBlogs = () => {
   const [blogs, setBlogs] = useState([]);
@@ -19,6 +22,8 @@ const AdminBlogs = () => {
     category: "",
     excerpt: "",
     image: "",
+    author: "",
+    content: "",
     readTime: "",
     date: new Date().toLocaleDateString("en-US", {
       year: "numeric",
@@ -48,6 +53,8 @@ const AdminBlogs = () => {
       category: "",
       excerpt: "",
       image: "",
+      author: "",
+      content: "",
       readTime: "",
       date: new Date().toLocaleDateString("en-US", {
         year: "numeric",
@@ -90,6 +97,8 @@ const AdminBlogs = () => {
       category: blog.category,
       excerpt: blog.excerpt,
       image: blog.image,
+      author: blog.author || "",
+      content: blog.content || "",
       readTime: blog.readTime,
       date: blog.date,
     });
@@ -109,7 +118,7 @@ const AdminBlogs = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-center">Loading blogs...</div>;
+    return <TableSkeleton rows={6} columns={4} />;
   }
 
 
@@ -183,28 +192,53 @@ const AdminBlogs = () => {
             required
           /> */}
 
-         <input
-  placeholder="Image URL"
-  value={formData.image}
-  onChange={(e) =>
-    setFormData({ ...formData, image: e.target.value })
-  }
-  className="input input-bordered w-full"
-  required
-/>
-
-
-
-
           <input
-            placeholder="Read time (e.g. 5 min read)"
-            value={formData.readTime}
+            placeholder="Image URL"
+            value={formData.image}
             onChange={(e) =>
-              setFormData({ ...formData, readTime: e.target.value })
+              setFormData({ ...formData, image: e.target.value })
             }
             className="input input-bordered w-full"
             required
           />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+                placeholder="Author Name"
+                value={formData.author}
+                onChange={(e) =>
+                setFormData({ ...formData, author: e.target.value })
+                }
+                className="input input-bordered w-full"
+            />
+            <input
+                placeholder="Read time (e.g. 5 min read)"
+                value={formData.readTime}
+                onChange={(e) =>
+                setFormData({ ...formData, readTime: e.target.value })
+                }
+                className="input input-bordered w-full"
+                required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-400 uppercase tracking-widest pl-1">Blog Content (Rich Text)</label>
+            <div className="prose max-w-none">
+                <CKEditor
+                    editor={ClassicEditor}
+                    data={formData.content}
+                    onChange={(event, editor) => {
+                        const data = editor.getData();
+                        setFormData({ ...formData, content: data });
+                    }}
+                    config={{
+                        placeholder: "Write your blog content here...",
+                        toolbar: [ 'heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'insertTable', 'undo', 'redo' ]
+                    }}
+                />
+            </div>
+          </div>
 
           <div className="flex gap-3">
             <button className="btn btn-primary">

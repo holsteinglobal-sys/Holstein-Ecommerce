@@ -26,3 +26,6 @@ dist-ssr
 # Secrets
 server/serviceAccount.json
 .env
+server/.env
+.env.local
+.env.*.local

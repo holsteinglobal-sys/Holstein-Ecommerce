@@ -28,7 +28,7 @@ export const generateInvoice = (order) => {
   /* ================= HEADER ================= */
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
-  doc.setTextColor(...colors.accent);
+ doc.setTextColor(181, 101, 29);
   doc.text("HOLSTEIN NUTRITION PVT LTD", 20, 25);
 
   doc.setFontSize(10);
@@ -103,10 +103,16 @@ export const generateInvoice = (order) => {
       ? "Online Payment"
       : "Cash on Delivery";
 
-  const paymentStatus =
-    order.paymentStatus === "paid"
-      ? "Payment Received"
-      : "Payment Pending";
+  const getPaymentStatusText = (status) => {
+    switch(status) {
+      case 'paid': return "Payment Received";
+      case 'refunded': return "Payment Refunded";
+      case 'failed': return "Payment Failed";
+      default: return "Payment Pending";
+    }
+  };
+
+  const paymentStatus = getPaymentStatusText(order.paymentStatus);
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(9);
@@ -118,17 +124,12 @@ export const generateInvoice = (order) => {
   doc.setFont("helvetica", "bold");
   doc.text("Payment Status:", 110, paymentY + 9);
 
-  doc.setTextColor(
-    paymentStatus === "Payment Received"
-      ? colors.success[0]
-      : colors.danger[0],
-    paymentStatus === "Payment Received"
-      ? colors.success[1]
-      : colors.danger[1],
-    paymentStatus === "Payment Received"
-      ? colors.success[2]
-      : colors.danger[2]
-  );
+  const statusColor = 
+    order.paymentStatus === "paid" ? colors.success :
+    order.paymentStatus === "refunded" ? [230, 126, 34] : // Orange
+    colors.danger;
+
+  doc.setTextColor(...statusColor);
   doc.text(paymentStatus, 145, paymentY + 9);
 
   /* ================= PRODUCT TABLE ================= */

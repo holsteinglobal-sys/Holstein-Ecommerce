@@ -1,60 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../lib/firebase';
-import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, where, getDocs, collectionGroup } from 'firebase/firestore';
 import toast from 'react-hot-toast';
 import { FaShoppingCart, FaUser, FaTrash, FaEye, FaSearch, FaCircle } from 'react-icons/fa';
 import { IoCloseSharp } from 'react-icons/io5';
+import TableSkeleton from '../../Component/Skeletons/TableSkeleton';
 
 const AdminCarts = ({ searchTerm = '' }) => {
     const [carts, setCarts] = useState([]);
     const [filteredCarts, setFilteredCarts] = useState([]);
     const [selectedCart, setSelectedCart] = useState(null);
     const [userDetails, setUserDetails] = useState({});
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Get all users first
-        const usersUnsubscribe = onSnapshot(collection(db, "users"), (usersSnapshot) => {
-            const userIds = usersSnapshot.docs.map(doc => doc.id);
-
-            // For each user, listen to their cart items subcollection
-            const cartUnsubscribes = userIds.map(userId => {
-                return onSnapshot(collection(db, "carts", userId, "items"), (itemsSnapshot) => {
-                    const items = itemsSnapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-
-                    if (items.length > 0) {
-                        const cartData = {
-                            userId,
-                            items,
-                            totalItems: items.reduce((sum, item) => sum + item.qty, 0),
-                            totalValue: items.reduce((sum, item) => sum + (item.price * item.qty), 0)
-                        };
-
-                        setCarts(prevCarts => {
-                            const existingIndex = prevCarts.findIndex(cart => cart.userId === userId);
-                            if (existingIndex >= 0) {
-                                // Update existing cart
-                                const updatedCarts = [...prevCarts];
-                                updatedCarts[existingIndex] = cartData;
-                                return updatedCarts;
-                            } else {
-                                // Add new cart
-                                return [...prevCarts, cartData];
-                            }
-                        });
-                    } else {
-                        // Remove cart if no items
-                        setCarts(prevCarts => prevCarts.filter(cart => cart.userId !== userId));
-                    }
-                });
+        setLoading(true);
+        // Using collectionGroup to listen to all 'items' subcollections inside 'carts'
+        const unsubscribe = onSnapshot(collectionGroup(db, "items"), (snapshot) => {
+            const itemsByUserId = {};
+            
+            snapshot.docs.forEach(snapshotDoc => {
+                // Ensure we only get items from the 'carts' collection hierarchy
+                if (snapshotDoc.ref.parent.parent?.path.startsWith('carts/')) {
+                    const userId = snapshotDoc.ref.parent.parent.id;
+                    if (!itemsByUserId[userId]) itemsByUserId[userId] = [];
+                    itemsByUserId[userId].push({ ...snapshotDoc.data(), id: snapshotDoc.id });
+                }
             });
 
-            // Return cleanup function
-            return () => {
-                cartUnsubscribes.forEach(unsubscribe => unsubscribe());
-            };
+            const cartsData = Object.keys(itemsByUserId).map(userId => ({
+                userId,
+                items: itemsByUserId[userId],
+                totalItems: itemsByUserId[userId].reduce((sum, item) => sum + (Number(item.qty) || 0), 0),
+                totalValue: itemsByUserId[userId].reduce((sum, item) => sum + ((Number(item.price) || 0) * (Number(item.qty) || 0)), 0)
+            }));
+
+            // Sort by total value or any other metric if needed
+            setCarts(cartsData.sort((a, b) => b.totalValue - a.totalValue));
+            setLoading(false);
+        }, (error) => {
+            console.error("Error listening to carts:", error);
+            setLoading(false);
         });
 
-        return usersUnsubscribe;
+        return unsubscribe;
     }, []);
 
     // Fetch user details for carts

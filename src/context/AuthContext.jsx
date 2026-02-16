@@ -6,7 +6,8 @@ import {
   signInWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
-  updateProfile
+  updateProfile,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
@@ -50,6 +51,10 @@ export function AuthProvider({ children }) {
 
   function logout() {
     return signOut(auth);
+  }
+
+  function resetPassword(email) {
+    return sendPasswordResetEmail(auth, email);
   }
 
   async function googleSignIn() {
@@ -114,7 +119,8 @@ export function AuthProvider({ children }) {
     googleSignIn,
     signup,
     login,
-    logout
+    logout,
+    resetPassword
   };
 
   return (
