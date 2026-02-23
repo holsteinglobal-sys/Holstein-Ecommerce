@@ -3,12 +3,7 @@ import { MdArrowForward, MdOutlineLocalOffer } from "react-icons/md";
 
 const Card = ({ id, image, title, longDescription, price, oldPrice, quantity, category, subcategory, slug , description}) => {
   const navigate = useNavigate();
-  console.log("its a Price" ,price)
-  console.log("its a Title" ,title)
-   console.log("its a oldPrice" ,oldPrice)
-    console.log("its a quantity" ,quantity)
-     console.log("its a category" ,category)
-     console.log("its a subcatagry" , subcategory)
+ 
   
   const handleCardClick = () => {
     navigate(`/product/${slug || id}`);

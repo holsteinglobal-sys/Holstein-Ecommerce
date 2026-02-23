@@ -9,7 +9,7 @@ import { createRazorpayOrder, verifyPayment, refundPayment } from './razorpayCon
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const distPath = path.join(__dirname, '../client/dist');
+const distPath = path.join(__dirname, 'dist');
 
 const app = express();
 

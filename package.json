@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "prod-build": "vite build && rd /s /q server\\dist 2>nul || echo skip && xcopy /s /e /i dist server\\dist",
-    "server": "cd server && npm start",
+    "postbuild": "cp -r dist server/dist 2>/dev/null || xcopy /s /e /i dist server\\dist",
+    "server": "node server/index.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
