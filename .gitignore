@@ -1,0 +1,7 @@
+node_modules
+.env
+.env.example
+server/serviceAccount.json
+dist
+build
+*.log
