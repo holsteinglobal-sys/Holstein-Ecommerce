@@ -1,5 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import logo from "/Image/Final-Logo.png";
+
 
 export const generateInvoice = (order) => {
   const doc = new jsPDF("p", "mm", "a4");
@@ -26,14 +28,17 @@ export const generateInvoice = (order) => {
   });
 
   /* ================= HEADER ================= */
+  doc.addImage(logo, "PNG", 20, 10, 30, 20);
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
- doc.setTextColor(181, 101, 29);
-  doc.text("HOLSTEIN NUTRITION PVT LTD", 20, 25);
+  doc.setTextColor(181, 101, 29);
+  doc.text("HOLSTEIN NUTRITION PVT LTD", 55, 22);
 
   doc.setFontSize(10);
   doc.setTextColor(...colors.secondary);
-  doc.text("TAX INVOICE / SALES INVOICE", 20, 32);
+  doc.text("1803 18th Floor Omaxe India Trade Tower", 55, 28);
+
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
@@ -134,11 +139,11 @@ export const generateInvoice = (order) => {
 
   /* ================= PRODUCT TABLE ================= */
   const tableColumns = [
-    "#",
+    "No.",
     "Item Description",
     "Qty",
-    "Unit Price (₹)",
-    "Line Total (₹)",
+    "Price",
+    "Amount",
   ];
 
   const tableRows = order.products.map((item, index) => [
@@ -174,45 +179,59 @@ export const generateInvoice = (order) => {
   });
 
   /* ================= TOTALS ================= */
-  const finalY = doc.lastAutoTable.finalY + 10;
+ const finalY = doc.lastAutoTable.finalY + 10;
 
-  doc.setFontSize(10);
-  doc.setTextColor(...colors.primary);
+const RIGHT_X = 188;
 
-  doc.text("Subtotal", 130, finalY);
-  doc.text(formatCurrency(order.subtotal), 190, finalY, { align: "right" });
+const formatNumber = (value) =>
+  "" + Number(value || 0).toLocaleString("en-IN");
 
-  doc.text("Shipping Charges", 130, finalY + 7);
-  doc.text(
-    formatCurrency(order.shippingCharge),
-    190,
-    finalY + 7,
-    { align: "right" }
-  );
+doc.setFont("helvetica", "normal");
+doc.setFontSize(10);
+doc.setTextColor(...colors.primary);
 
-  let y = finalY + 14;
-  if (order.walletAmountUsed > 0) {
-    doc.setTextColor(...colors.success);
-    doc.text("Wallet / Discount", 130, y);
-    doc.text(
-      `- ${formatCurrency(order.walletAmountUsed)}`,
-      190,
-      y,
-      { align: "right" }
-    );
-    doc.setTextColor(...colors.primary);
-    y += 7;
-  }
+doc.text("Subtotal", 130, finalY);
 
-  doc.setDrawColor(180, 180, 180);
-  doc.line(125, y - 3, 190, y - 3);
+doc.setFont("helvetica", "normal");
+doc.text(formatNumber(order.subtotal), RIGHT_X, finalY, {
+  align: "right",
+});
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.text("Total Payable", 130, y + 4);
-  doc.text(formatCurrency(order.totalAmount), 190, y + 4, {
+doc.text("Shipping Charges", 130, finalY + 7);
+
+doc.setFont("helvetica", "normal");
+doc.text(formatNumber(order.shippingCharge), RIGHT_X, finalY + 7, {
+  align: "right",
+});
+
+let y = finalY + 14;
+
+if (order.walletAmountUsed > 0) {
+  doc.setTextColor(...colors.success);
+
+  doc.setFont("helvetica", "normal");
+  doc.text("Wallet / Discount", 130, y);
+
+  doc.text("- " + formatNumber(order.walletAmountUsed), RIGHT_X, y, {
     align: "right",
   });
+
+  doc.setTextColor(...colors.primary);
+  y += 7;
+}
+
+doc.setDrawColor(180);
+doc.line(125, y - 3, RIGHT_X, y - 3);
+
+doc.setFont("helvetica", "bold");
+doc.setFontSize(13);
+
+doc.text("Total Payable", 130, y + 5);
+
+doc.setFont("helvetica", "bold");
+doc.text(formatNumber(order.totalAmount), RIGHT_X, y + 5, {
+  align: "right",
+});
 
   /* ================= FOOTER ================= */
   const pageHeight = doc.internal.pageSize.height;
@@ -221,7 +240,7 @@ export const generateInvoice = (order) => {
   doc.setFontSize(8);
   doc.setTextColor(...colors.secondary);
   doc.text(
-    "This is a system-generated invoice and does not require a signature.",
+    "",
     105,
     pageHeight - 18,
     { align: "center" }
@@ -230,12 +249,12 @@ export const generateInvoice = (order) => {
   doc.setFont("helvetica", "bold");
   doc.setTextColor(...colors.primary);
   doc.text(
-    "Thank you for shopping with Holstein Nutrition!",
+    "Thank you for shopping with Holstein !",
     105,
     pageHeight - 12,
     { align: "center" }
   );
 
   /* ================= SAVE ================= */
-  doc.save(`Invoice_${invoiceOrderId}.pdf`);
+  doc.save(`Invoice_${invoiceOrderId}.pdf`); 
 };
