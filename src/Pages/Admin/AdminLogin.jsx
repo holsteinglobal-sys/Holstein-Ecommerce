@@ -59,7 +59,7 @@ const AdminLogin = () => {
                         <MdAdminPanelSettings className="text-white text-4xl" />
                     </div>
                     <img 
-                        src="/public/image/holstein-logo.png" 
+                        src="/Image/holstein-logo.png" 
                         alt="Holstein Global" 
                         className="h-16 mx-auto mb-4 object-contain"
                     />

@@ -110,7 +110,7 @@ const Profile = ({ initialTab = 'profile' }) => {
 
                  <Link to="/" className="flex items-center">
           <img
-            src="/public/image/holstein-logo.png"
+            src="/Image/holstein-logo.png"
             alt="Holstein Logo"
             className="h-25 w-auto object-contain mt-2"
           />

@@ -193,7 +193,7 @@ const AdminDashboard = () => {
             <MdMenu size={28} />
           </button>
           <img
-            src="/public/image/holstein-logo.png"
+            src="/Image/holstein-logo.png"
             alt="Holstein Logo"
             className="h-12 w-auto object-contain"
           />
@@ -218,7 +218,7 @@ const AdminDashboard = () => {
         <div className="h-23 flex items-center px-6 border-b border-gray-100">
          
             <img
-              src="/public/image/holstein-logo.png"
+              src="/Image/holstein-logo.png"
               alt="Holstein Logo"
               className="h-25 w-auto object-contain mt-2"
             />
