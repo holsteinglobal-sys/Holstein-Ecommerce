@@ -1,6 +1,5 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import logo from "/Image/Final-Logo.png";
 
 
 export const generateInvoice = (order) => {
@@ -28,16 +27,14 @@ export const generateInvoice = (order) => {
   });
 
   /* ================= HEADER ================= */
-  doc.addImage(logo, "PNG", 20, 10, 30, 20);
-
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
-  doc.setTextColor(181, 101, 29);
-  doc.text("HOLSTEIN NUTRITION PVT LTD", 55, 22);
+ doc.setTextColor(181, 101, 29);
+  doc.text("HOLSTEIN NUTRITION PVT LTD", 20, 25);
 
   doc.setFontSize(10);
   doc.setTextColor(...colors.secondary);
-  doc.text("1803 18th Floor Omaxe India Trade Tower", 55, 28);
+  doc.text("1803 18th Floor Omaxe India Trade Tower", 20, 32);
 
 
   doc.setFont("helvetica", "normal");
