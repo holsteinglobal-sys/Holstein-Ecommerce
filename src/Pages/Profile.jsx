@@ -198,7 +198,7 @@ const Profile = ({ initialTab = 'profile' }) => {
         </aside>
 
         {/* MAIN CONTENT AREA */}
-        <main className="flex-1 lg:ml-64 p-4 md:p-8 overflow-y-auto w-full pt-28 lg:pt-8">
+        <main className="flex-1 lg:ml-64 p-4 md:p-8 overflow-y-auto w-full pt-7 lg:pt-8">
              {renderContent()}
         </main>
     </div>
