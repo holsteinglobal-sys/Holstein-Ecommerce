@@ -40,12 +40,12 @@ export const CartProvider = ({ children }) => {
     if (!currentUser) {
       toast.error("Please login to add items to cart");
       navigate("/login");
-      return;
+      return false;
     }
 
     if (userRole === 'admin') {
       toast.error("Admins cannot add items to cart.");
-      return;
+      return false;
     }
 
     try {
@@ -59,20 +59,18 @@ export const CartProvider = ({ children }) => {
           qty: itemSnap.data().qty + 1
         });
       } else {
-        // Save product details. 
-        // Note: Ideally, store only ID and fetch details, but to keep it simple and consistent with existing app, store all details.
-        // Make sure to remove 'id' from spread if it duplicates doc ID, or keep it.
-        // Assuming product object is clean.
         await setDoc(itemRef, {
           ...product,
           qty: 1
         });
       }
       toast.success("Added to cart");
+      return true;
       
     } catch (error) {
       console.error("Error adding to cart:", error);
       toast.error("Failed to add to cart");
+      return false;
     }
   };
 

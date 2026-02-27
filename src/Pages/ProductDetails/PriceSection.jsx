@@ -154,8 +154,6 @@ const PriceSection = ({ product }) => {
           onClick={() => {
             addToCart(product);
             setCartCounter(prev => prev + 1);
-              //  toast.success("Product added to cart");
-             
           }}
         >
           Add to Cart
@@ -163,9 +161,13 @@ const PriceSection = ({ product }) => {
 
         <button
           className="btn rounded-full btn-success flex-1"
-          onClick={() => {
-            addToCart(product);
-            navigate("/cart");
+          onClick={async () => {
+             // Only navigate to cart if addToCart (which handles the login redirect) succeeds
+             // Or better, check currentUser here directly to avoid race conditions with multiple navigations
+             const success = await addToCart(product);
+             if (success) {
+               navigate("/cart");
+             }
           }}
         >
           Buy Now
