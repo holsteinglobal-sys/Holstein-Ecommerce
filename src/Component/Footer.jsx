@@ -126,7 +126,7 @@ const Footer = () => {
           <div className="space-y-6">
             <Link to="/">
               <img
-                src="/public/image/holstein-primary.png"
+                src="/Image/holstein-primary.png"
                 alt="Holstein Logo"
                 className="h-25 w-auto object-contain"
               />

@@ -89,7 +89,7 @@ const Navbar = () => {
             )}
             <Link to="/" className="flex items-center group">
               <img
-                src="/public/image/holstein-primary.png"
+                src="/Image/holstein-primary.png"
                 alt="Holstein Logo"
                 className="h-12 md:h-16 lg:h-20 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />

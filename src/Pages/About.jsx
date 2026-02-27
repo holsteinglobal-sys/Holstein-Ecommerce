@@ -108,7 +108,7 @@ const About = () => {
             className="relative"
           >
             <div className="relative z-10 rounded-[4rem] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.15)] bg-white border border-gray-100">
-              <img src="/public/image/about-cow.jpg" alt="Happy Livestock" className="w-full h-full object-cover rounded-[4rem] p-4" />
+              <img src="/Image/about-cow.jpg" alt="Happy Livestock" className="w-full h-full object-cover rounded-[4rem] p-4" />
             </div>
             {/* Glass Card Accent */}
             <div className="absolute -bottom-10 -left-10 p-8 bg-white/80 backdrop-blur-xl border border-white/50 rounded-[3rem] shadow-2xl z-20 max-w-[280px] hidden md:block">
@@ -132,7 +132,7 @@ const About = () => {
               <div className="relative">
                 <div className="absolute -inset-10 bg-primary/5 rounded-[5rem] blur-2xl -z-10"></div>
                 <img 
-                  src="/public/image/Final-Logo-1.jpg" 
+                  src="/Image/Final-Logo-1.jpg" 
                   alt="MMC Group Heritage" 
                   className="w-full max-w-lg mx-auto rounded-[3rem] bg-white p-12 shadow-xl border border-gray-100"
                 />

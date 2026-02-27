@@ -7,7 +7,7 @@ const AboutHero = () => {
       {/* Background Image - Sized naturally to avoid cropping */}
       <div className="relative w-full">
         <img
-          src="/public/image/About.png" 
+          src="/Image/About.png" 
           alt="About Us"
           className="w-full h-auto block"
         />

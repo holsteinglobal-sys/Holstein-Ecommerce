@@ -7,7 +7,7 @@ const BlogHero = () => {
       {/* Background Image - Sized naturally to avoid cropping */}
       <div className="relative w-full">
         <img
-          src="/public/image/Blog.png" 
+          src="/Image/Blog.png" 
           alt="Our Blog"
           className="w-full h-auto block"
         />

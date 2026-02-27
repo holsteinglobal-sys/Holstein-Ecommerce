@@ -13,7 +13,7 @@ const AboutContent = () => {
           <div className="relative group">
             <div className="relative z-10 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-gray-200/50 aspect-square lg:aspect-auto lg:h-[600px]">
               <img 
-                src="/public/image/Final-Logo-1.jpg" 
+                src="/Image/Final-Logo-1.jpg" 
                 alt="Holstein Heritage" 
                 className="w-full h-full object-contain bg-white p-12 group-hover:scale-105 transition-transform duration-700"
               />

@@ -7,7 +7,7 @@ const ProductImage = () => {
       {/* Background Image - Sized naturally to avoid cropping */}
       <div className="relative w-full">
         <img
-          src="/public/image/Products.png" 
+          src="/Image/Products.png" 
           alt="Our Products"
           className="w-full h-auto block"
         />
