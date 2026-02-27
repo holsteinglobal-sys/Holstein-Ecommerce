@@ -210,7 +210,7 @@ const Footer = () => {
             {/* Compact Coupon Box */}
             <div className="p-5 rounded-2xl bg-primary/5 border border-primary/10 group">
               <h5 className="text-gray-900 text-xs font-bold mb-3 flex items-center gap-2">
-                <FaTicketAlt className="text-primary text-xl" /> Reddem Coupon
+                <FaTicketAlt className="text-primary text-xl" /> Redeem Coupon
               </h5>
               <form onSubmit={handleRedeem} className="flex gap-2">
                 <input 

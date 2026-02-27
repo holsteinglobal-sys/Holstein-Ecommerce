@@ -8,7 +8,8 @@ import {
   doc,
   query,
   where,
-  orderBy
+  orderBy,
+  writeBatch
 } from 'firebase/firestore';
 
 // Slug Generator Utility
@@ -27,11 +28,23 @@ export const generateSlug = (text) => {
 // Products CRUD operations
 export const getProducts = async () => {
   const productsRef = collection(db, 'products');
-  const snapshot = await getDocs(productsRef);
+  const q = query(productsRef, orderBy('sortOrder', 'asc'));
+  const snapshot = await getDocs(q);
+  
+  if (snapshot.empty) {
+    // If no sorted products, fallback to unsorted
+    const unsortedSnapshot = await getDocs(productsRef);
+    return unsortedSnapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data(),
+      isVisible: doc.data().isVisible !== false 
+    }));
+  }
+
   return snapshot.docs.map(doc => ({ 
     id: doc.id, 
     ...doc.data(),
-    isVisible: doc.data().isVisible !== false // Default to true if not set
+    isVisible: doc.data().isVisible !== false 
   }));
 };
 
@@ -53,6 +66,15 @@ export const deleteProduct = async (id) => {
 export const toggleProductVisibility = async (id, currentVisibility) => {
   const productRef = doc(db, 'products', id);
   return await updateDoc(productRef, { isVisible: !currentVisibility });
+};
+
+export const updateProductOrders = async (productOrders) => {
+  const batch = writeBatch(db);
+  productOrders.forEach(({ id, sortOrder }) => {
+    const productRef = doc(db, 'products', id);
+    batch.update(productRef, { sortOrder });
+  });
+  return await batch.commit();
 };
 
 // Blogs CRUD operations

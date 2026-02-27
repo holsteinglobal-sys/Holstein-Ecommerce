@@ -31,7 +31,10 @@ const Home = () => {
           getLatestReviews(3), // Show top 3 latest
           getTopRatedReviews(4) // Get all 4+ star reviews
         ]);
-        setProducts(productsData.filter(p => p.isVisible !== false));
+        const sortedProducts = productsData
+          .filter(p => p.isVisible !== false)
+          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+        setProducts(sortedProducts);
         setLatestReviews(reviewsData);
         setTopRatedReviews(topReviewsData);
       } catch (error) {

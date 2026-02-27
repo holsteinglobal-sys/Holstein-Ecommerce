@@ -7,17 +7,157 @@ import {
   toggleProductVisibility,
   getCategories,
   generateSlug,
+  updateProductOrders,
 } from "../../services/adminService";
 import toast from "react-hot-toast";
 import { getDirectGDriveUrl } from "../../utils/googleDriveConverter";
-import { MdEdit, MdDelete, MdVisibility, MdVisibilityOff, MdAdd } from "react-icons/md";
+import { 
+  MdEdit, 
+  MdDelete, 
+  MdVisibility, 
+  MdVisibilityOff, 
+  MdAdd,
+  MdDragIndicator,
+  MdLayers
+} from "react-icons/md";
 import TableSkeleton from "../../Component/Skeletons/TableSkeleton";
+
+// DND Kit Imports
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+const SortableRow = ({ product, handleEdit, handleDelete, handleToggleVisibility }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: product.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : "auto",
+    opacity: isDragging ? 0.5 : 1,
+    backgroundColor: isDragging ? "#f3f4f6" : "transparent",
+  };
+
+  return (
+    <tr 
+      ref={setNodeRef} 
+      style={style} 
+      className={`hover:bg-gray-50 transition-colors ${isDragging ? "shadow-inner" : ""}`}
+    >
+      <td className="py-4">
+        <div className="flex items-center gap-4">
+          <div 
+            {...attributes} 
+            {...listeners} 
+            className="cursor-grab active:cursor-grabbing p-1 text-gray-400 hover:text-primary transition-colors"
+          >
+            <MdDragIndicator size={20} />
+          </div>
+          <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden border border-gray-100 flex-shrink-0">
+            <img
+              src={product.image}
+              alt={product.title}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                e.target.src = "https://via.placeholder.com/150?text=No+Image";
+              }}
+            />
+          </div>
+          <div>
+            <div className="font-bold text-gray-800">{product.title}</div>
+            <div className="text-xs text-gray-400 capitalize">{product.Quantity}</div>
+          </div>
+        </div>
+      </td>
+      <td className="py-4">
+        <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-medium border border-indigo-100">
+          {product.category}
+        </span>
+      </td>
+      <td className="py-4">
+        <div className="flex flex-col">
+          <span className="font-bold text-gray-800">₹{product.price}</span>
+          {product.oldPrice && (
+            <span className="text-xs text-gray-400 line-through">₹{product.oldPrice}</span>
+          )}
+        </div>
+      </td>
+      <td className="py-4 text-center">
+        <button
+          onClick={() => handleToggleVisibility(product)}
+          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+            product.isVisible
+              ? "bg-green-50 text-green-600 border border-green-100"
+              : "bg-red-50 text-red-600 border border-red-100"
+          }`}
+        >
+          {product.isVisible ? (
+            <>
+              <MdVisibility className="text-sm" /> Visible
+            </>
+          ) : (
+            <>
+              <MdVisibilityOff className="text-sm" /> Hidden
+            </>
+          )}
+        </button>
+      </td>
+      <td className="py-4 text-right">
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => handleEdit(product)}
+            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="Edit"
+          >
+            <MdEdit className="text-xl" />
+          </button>
+          <button
+            onClick={() => handleDelete(product.id)}
+            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Delete"
+          >
+            <MdDelete className="text-xl" />
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+};
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [reorderFilter, setReorderFilter] = useState("All");
+  const [isReordering, setIsReordering] = useState(false);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   const initialFormState = {
     title: "",
@@ -170,6 +310,39 @@ const AdminProducts = () => {
     }
   };
 
+  const handleDragEnd = (event) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      setProducts((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+      setIsReordering(true);
+    }
+  };
+
+  const handleSaveOrder = async () => {
+    const loadingToast = toast.loading("Saving new order...");
+    try {
+      // Calculate new sortOrder for all products in the current category/list
+      // To keep it simple, we use the index in the array as sortOrder
+      const orderUpdates = products.map((p, index) => ({
+        id: p.id,
+        sortOrder: index,
+      }));
+
+      await updateProductOrders(orderUpdates);
+      toast.success("Product order updated successfully!", { id: loadingToast });
+      setIsReordering(false);
+      loadProducts();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to save product order", { id: loadingToast });
+    }
+  };
+
   const handleMigrateSlugs = async () => {
     if (!window.confirm("This will generate SEO-friendly URLs for all products. Continue?")) return;
     
@@ -185,6 +358,25 @@ const AdminProducts = () => {
         }
       }
       toast.success(`Successfully migrated ${count} products!`, { id: loadingToast });
+      loadProducts();
+    } catch (error) {
+      console.error(error);
+      toast.error("Migration failed", { id: loadingToast });
+    }
+  };
+
+  const handleMigrateSortOrder = async () => {
+    if (!window.confirm("This will initialize the display order for all products. Continue?")) return;
+    
+    const loadingToast = toast.loading("Initializing sort order...");
+    try {
+      const orderUpdates = products.map((p, index) => ({
+        id: p.id,
+        sortOrder: index,
+      }));
+
+      await updateProductOrders(orderUpdates);
+      toast.success(`Successfully initialized order for ${products.length} products!`, { id: loadingToast });
       loadProducts();
     } catch (error) {
       console.error(error);
@@ -219,18 +411,49 @@ const AdminProducts = () => {
       </div> */}
 
       {/* Header */}
-      <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+      <div className="p-6 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center bg-gray-50/50 gap-4">
         <div>
           <h2 className="text-xl font-bold text-gray-800">Products Management</h2>
           <p className="text-sm text-gray-500">Manage your store products dynamically</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Category Filter for Reordering */}
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-1.5 shadow-sm">
+            <MdLayers className="text-primary" />
+            <select 
+              value={reorderFilter}
+              onChange={(e) => setReorderFilter(e.target.value)}
+              className="outline-none text-sm font-bold text-gray-700 bg-transparent"
+            >
+              <option value="All">All Categories</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.name}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {isReordering && (
+            <button
+              onClick={handleSaveOrder}
+              className="btn btn-success text-white rounded-xl shadow-md animate-pulse"
+            >
+              Save New Order
+            </button>
+          )}
+
           <button
             onClick={handleMigrateSlugs}
             className="btn btn-outline btn-primary rounded-xl"
             title="Generate URLs for all products"
           >
             Fix Product URLs
+          </button>
+          <button
+            onClick={handleMigrateSortOrder}
+            className="btn btn-outline btn-accent rounded-xl"
+            title="Initialize product display order"
+          >
+            Initialize Order
           </button>
           <button
             onClick={() => {
@@ -259,79 +482,28 @@ const AdminProducts = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {products.map((product) => (
-              <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                <td className="py-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden border border-gray-100 flex-shrink-0">
-                      <img
-                        src={product.image}
-                        alt={product.title}
-                        className="w-full h-full object-contain"
-                        onError={(e) => {
-                          e.target.src = "https://via.placeholder.com/150?text=No+Image";
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <div className="font-bold text-gray-800">{product.title}</div>
-                      <div className="text-xs text-gray-400 capitalize">{product.Quantity}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="py-4">
-                  <span className="px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-medium border border-indigo-100">
-                    {product.category}
-                  </span>
-                </td>
-                <td className="py-4">
-                  <div className="flex flex-col">
-                    <span className="font-bold text-gray-800">₹{product.price}</span>
-                    {product.oldPrice && (
-                      <span className="text-xs text-gray-400 line-through">₹{product.oldPrice}</span>
-                    )}
-                  </div>
-                </td>
-                <td className="py-4 text-center">
-                  <button
-                    onClick={() => handleToggleVisibility(product)}
-                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                      product.isVisible
-                        ? "bg-green-50 text-green-600 border border-green-100"
-                        : "bg-red-50 text-red-600 border border-red-100"
-                    }`}
-                  >
-                    {product.isVisible ? (
-                      <>
-                        <MdVisibility className="text-sm" /> Visible
-                      </>
-                    ) : (
-                      <>
-                        <MdVisibilityOff className="text-sm" /> Hidden
-                      </>
-                    )}
-                  </button>
-                </td>
-                <td className="py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => handleEdit(product)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                      title="Edit"
-                    >
-                      <MdEdit className="text-xl" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(product.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete"
-                    >
-                      <MdDelete className="text-xl" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={products.map((p) => p.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {products
+                  .filter(p => reorderFilter === "All" || p.category === reorderFilter)
+                  .map((product) => (
+                    <SortableRow
+                      key={product.id}
+                      product={product}
+                      handleEdit={handleEdit}
+                      handleDelete={handleDelete}
+                      handleToggleVisibility={handleToggleVisibility}
+                    />
+                  ))}
+              </SortableContext>
+            </DndContext>
             {products.length === 0 && (
               <tr>
                 <td colSpan="5" className="text-center py-12 text-gray-500">

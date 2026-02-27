@@ -23,7 +23,10 @@ const ProductPage = () => {
         getProducts(),
         getCategories()
       ]);
-      setProducts(productsData.filter(p => p.isVisible !== false));
+      const sortedProducts = productsData
+        .filter(p => p.isVisible !== false)
+        .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+      setProducts(sortedProducts);
       setCategories(categoriesData);
     } catch (error) {
       console.error("Error loading products or categories:", error);
