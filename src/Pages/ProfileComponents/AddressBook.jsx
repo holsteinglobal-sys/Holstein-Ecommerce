@@ -105,7 +105,7 @@ const AddressBook = () => {
       {!isAdding && (
         <button
           onClick={() => setIsAdding(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition"
+          className="flex items-center gap-2 px-2 py-2 rounded-lg bg-emerald-500 text-white text-sm font-medium hover:bg-emerald-600 transition"
         >
           <MdAdd className="text-xl" />
           Add Address
