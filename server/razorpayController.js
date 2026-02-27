@@ -9,26 +9,31 @@ import { dirname, join } from 'path';
 let isFirebaseInitialized = false;
 
 try {
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = dirname(__filename);
-  const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || join(__dirname, 'serviceAccount.json');
+  let serviceAccount;
 
-  console.log(`[FIREBASE_INIT] Attempting to load credentials from: ${serviceAccountPath}`);
-
-  if (!authFileExists(serviceAccountPath)) {
-     throw new Error(`Service account file not found at ${serviceAccountPath}`);
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    console.log("[FIREBASE_INIT] Loading credentials from FIREBASE_SERVICE_ACCOUNT env var");
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } else {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = dirname(__filename);
+    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || join(__dirname, 'serviceAccount.json');
+    console.log(`[FIREBASE_INIT] Attempting to load credentials from: ${serviceAccountPath}`);
+    
+    if (authFileExists(serviceAccountPath)) {
+      serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+    }
   }
 
-  const serviceAccount = JSON.parse(
-    readFileSync(serviceAccountPath, 'utf8')
-  );
+  if (!serviceAccount) {
+    throw new Error("Firebase Service Account credentials not found (env or file).");
+  }
   
   if (!serviceAccount.project_id || !serviceAccount.client_email || !serviceAccount.private_key) {
-      throw new Error("Invalid serviceAccount.json: Missing project_id, client_email, or private_key.");
+      throw new Error("Invalid serviceAccount: Missing project_id, client_email, or private_key.");
   }
 
   console.log(`[FIREBASE_INIT] Service Account ID: ${serviceAccount.project_id}`);
-  console.log(`[FIREBASE_INIT] Client Email: ${serviceAccount.client_email}`);
 
   if (!admin.apps.length) {
     admin.initializeApp({
