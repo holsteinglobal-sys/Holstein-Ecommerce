@@ -10,7 +10,7 @@ import {
   sendPasswordResetEmail
 } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -90,6 +90,11 @@ export function AuthProvider({ children }) {
         const userDocRef = doc(db, "users", user.uid);
         const userDocSnapshot = await getDoc(userDocRef);
         
+        // Update lastActive immediately on login/refresh
+        await updateDoc(userDocRef, {
+          lastActive: serverTimestamp()
+        }).catch(err => console.error("Error updating lastActive:", err));
+
         if (userDocSnapshot.exists()) {
           setUserRole(userDocSnapshot.data().role);
         } else {
@@ -99,7 +104,8 @@ export function AuthProvider({ children }) {
                 email: user.email,
                 displayName: user.displayName || 'User',
                 role: 'user',
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
+                lastActive: serverTimestamp()
              });
              setUserRole('user');
         }
@@ -112,6 +118,26 @@ export function AuthProvider({ children }) {
 
     return unsubscribe;
   }, []);
+
+  // Periodic heartbeat to track real-time presence
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const updatePresence = async () => {
+      try {
+        const userDocRef = doc(db, "users", currentUser.uid);
+        await updateDoc(userDocRef, {
+          lastActive: serverTimestamp()
+        });
+      } catch (err) {
+        console.error("Presence update failed:", err);
+      }
+    };
+
+    // Update every 3 minutes
+    const interval = setInterval(updatePresence, 3 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [currentUser]);
 
   const value = {
     currentUser,

@@ -11,13 +11,13 @@ const HomeImage = () => {
   // You can easily update these image paths below
   const slides = [
     {
-      url: "/Image/Higher Milk Yield.png",
+      url: "/Image/Higher-Milk-Yield.png",
       title: "NUTRITION YOU CAN TRUST,",
       subtitle: "GROWTH YOU CAN SEE!",
       description: "Delivering Premium Quality cattle feed solutions to keep your cattle healthy, productive, and thriving.",
     },
     {
-      url: "/Image/xtra milk 8000.webp",
+      url: "/Image/xtra-milk-8000.webp",
       title: "PREMIUM CATTLE FEED,",
       subtitle: "EXPERT SOLUTIONS",
       description: "Scientifically formulated nutrition for maximum yield and livestock wellness.",

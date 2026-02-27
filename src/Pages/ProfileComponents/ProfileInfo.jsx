@@ -58,8 +58,7 @@ const ProfileInfo = () => {
   });
 };
 
-// const getDefaultAvatar = (name) =>
-//   `https://ui-avatars.com/api/?name=${encodeURIComponent(name || "User")}&background=10B981&color=fff`;
+
 
 
     if (pageLoading) {
