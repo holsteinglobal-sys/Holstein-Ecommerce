@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { MdAccountBalanceWallet, MdOutlineRemoveCircleOutline } from "react-icons/md";
 import axios from "axios";
 import { generateInvoice } from "../utils/invoiceGenerator";
+import PaymentStatusOverlay from "../Component/PaymentStatusOverlay.jsx";
 
 const Cart = () => {
   const [products, setProducts] = useState([]);
@@ -53,6 +54,9 @@ const Cart = () => {
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null); // { code, value }
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+
+  // Payment UI Status: null | 'verifying' | 'confirming' | 'generating' | 'success'
+  const [paymentStatus, setPaymentStatus] = useState(null);
 
   // --- 1. Fetch Addresses ---
   useEffect(() => {
@@ -357,6 +361,9 @@ const Cart = () => {
               });
 
               if (verifyRes.status === 200) {
+                // Step 2: Confirming / Securing Order
+                setPaymentStatus('confirming');
+                
                 // 3. Create Order in LOCAL Firestore (the correct project e6876)
                 let firestoreOrderId = "";
                 await runTransaction(db, async (transaction) => {
@@ -416,6 +423,10 @@ const Cart = () => {
                   }
                 }
 
+                // Step 3: Generating Invoice
+                setPaymentStatus('generating');
+                await new Promise(r => setTimeout(r, 1500)); // Artificial delay for premium feel
+
                 // 5. Generate Invoice
                 try {
                   const finalOrderForInvoice = { 
@@ -428,16 +439,22 @@ const Cart = () => {
                   console.error("Invoice Generation Error:", invErr);
                 }
 
+                // Step 4: Success state before redirect
+                setPaymentStatus('success');
+                await new Promise(r => setTimeout(r, 2000));
+
                 // 4. Cleanup & Redirect
                 await clearCart();
                 toast.success("Payment Successful!");
                 setAppliedWalletAmount(0);
                 setIsCheckoutOpen(false);
                 setCheckoutStep(1);
+                setPaymentStatus(null);
                 navigate("/order-success", { state: { orderId: firestoreOrderId, total: rzpOrder.verifiedTotal } });
               }
             } catch (err) {
               console.error("Verification Catch Error:", err);
+              setPaymentStatus(null);
               toast.error(err.response?.data?.message || "Payment verification failed. Please contact support if amount was deducted.");
             }
           },
@@ -1030,6 +1047,23 @@ const Cart = () => {
                         <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
                           <button onClick={() => setCheckoutStep(1)} className="px-6 py-3 rounded-xl text-slate-700 font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-slate-50 transition-all border rounded-full">Go Back</button>
                           <button 
+                            onClick={async () => {
+                              setPaymentStatus('verifying');
+                              await new Promise(r => setTimeout(r, 2000));
+                              setPaymentStatus('confirming');
+                              await new Promise(r => setTimeout(r, 2000));
+                              setPaymentStatus('generating');
+                              await new Promise(r => setTimeout(r, 2000));
+                              setPaymentStatus('success');
+                              await new Promise(r => setTimeout(r, 2000));
+                              setPaymentStatus(null);
+                              toast.success("Mock Success Complete!");
+                            }}
+                            className="w-full sm:w-auto px-6 py-4 bg-slate-100 text-slate-600 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all"
+                          >
+                            Test Payment Success UI
+                          </button>
+                          <button 
                             onClick={handlePlaceOrder}
                             className="w-full sm:w-auto px-10 py-4 bg-emerald-600 text-white rounded-xl font-bold uppercase tracking-[0.25em] text-xs shadow-lg shadow-emerald-100 active:scale-95 transition-all hover:bg-slate-900 group"
                           >
@@ -1127,6 +1161,9 @@ const Cart = () => {
             .hide-scrollbar::-webkit-scrollbar { display: none; }
             .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         `}</style>
+
+        {/* Payment Status Overlay */}
+        <PaymentStatusOverlay status={paymentStatus} />
 
       </div>
     </div>

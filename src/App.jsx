@@ -33,6 +33,7 @@ import NotFound from './Pages/NotFound.jsx';
 import AdminRoute from './Component/AdminRoute.jsx';
 import ForgotPassword from './Pages/ForgotPassword.jsx';
 
+
 const App = () => {
 
   const location = useLocation();
@@ -48,12 +49,15 @@ const App = () => {
 
 
   return (
+    
     <AuthProvider>
     <CartProvider>
-      <div >
+      <div>
+       
           <ScrollToTop />
          {!shouldHideLayout && <Navbar />}
 
+        
 
          <Routes>
           <Route path='/' element={<Home />} />
