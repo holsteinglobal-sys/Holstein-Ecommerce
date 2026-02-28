@@ -1047,23 +1047,6 @@ const Cart = () => {
                         <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
                           <button onClick={() => setCheckoutStep(1)} className="px-6 py-3 rounded-xl text-slate-700 font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-slate-50 transition-all border rounded-full">Go Back</button>
                           <button 
-                            onClick={async () => {
-                              setPaymentStatus('verifying');
-                              await new Promise(r => setTimeout(r, 2000));
-                              setPaymentStatus('confirming');
-                              await new Promise(r => setTimeout(r, 2000));
-                              setPaymentStatus('generating');
-                              await new Promise(r => setTimeout(r, 2000));
-                              setPaymentStatus('success');
-                              await new Promise(r => setTimeout(r, 2000));
-                              setPaymentStatus(null);
-                              toast.success("Mock Success Complete!");
-                            }}
-                            className="w-full sm:w-auto px-6 py-4 bg-slate-100 text-slate-600 rounded-xl font-bold uppercase tracking-widest text-[10px] hover:bg-slate-200 transition-all"
-                          >
-                            Test Payment Success UI
-                          </button>
-                          <button 
                             onClick={handlePlaceOrder}
                             className="w-full sm:w-auto px-10 py-4 bg-emerald-600 text-white rounded-xl font-bold uppercase tracking-[0.25em] text-xs shadow-lg shadow-emerald-100 active:scale-95 transition-all hover:bg-slate-900 group"
                           >
