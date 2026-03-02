@@ -57,6 +57,7 @@ const Cart = () => {
 
   // Payment UI Status: null | 'verifying' | 'confirming' | 'generating' | 'success'
   const [paymentStatus, setPaymentStatus] = useState(null);
+  const [isOrdering, setIsOrdering] = useState(false);
 
   // --- 1. Fetch Addresses ---
   useEffect(() => {
@@ -294,14 +295,19 @@ const Cart = () => {
         console.error("COD Order Error:", error);
         toast.error(error.message || "Failed to place order.");
       }
-      } else {
+    } else {
       // Razorpay Logic (Secure Production Flow)
+      setIsOrdering(true);
+      setPaymentStatus('verifying');
+      
       try {
         // 0. Final Cart Validation (Synchronous check against loaded products)
         const invalidItems = cartItems.filter(item => !products.some(p => p.id === item.id));
         if (invalidItems.length > 0) {
           toast.error(`${invalidItems.length} item(s) are no longer available. Cleaning your cart...`);
           invalidItems.forEach(item => removeFromCart(item.id));
+          setIsOrdering(false);
+          setPaymentStatus(null);
           return;
         }
 
@@ -322,6 +328,10 @@ const Cart = () => {
         const response = await axios.post("/api/payments/create-order", payload);
 
         const rzpOrder = response.data;
+        
+        // Hide overlay before opening Razorpay modal
+        setPaymentStatus(null);
+        setIsOrdering(false);
 
         const options = {
           key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
@@ -331,6 +341,7 @@ const Cart = () => {
           description: "Premium Cattle Feed",
           order_id: rzpOrder.id,
           handler: async (response) => {
+            setPaymentStatus('verifying'); // Show overlay again during verification
             try {
               // 1. Prepare Order Data for Backend
               const userDoc = await getDoc(doc(db, "users", currentUser.uid));
@@ -472,6 +483,8 @@ const Cart = () => {
         rzp.open();
       } catch (error) {
         console.error("Razorpay Error Details:", error.response?.data || error.message);
+        setIsOrdering(false);
+        setPaymentStatus(null);
         // Show the SPECIFIC error from backend if available
         const errMsg = error.response?.data?.error || error.response?.data?.message || "Failed to initiate payment";
         toast.error(`Payment Failed: ${errMsg}`);
@@ -1024,7 +1037,7 @@ const Cart = () => {
                                   <div className="flex gap-2">
                                     <input 
                                       type="number"
-                                      placeholder="Amount..."
+                                      placeholder="Amount..." 
                                       className="bg-white/5 border border-white/10 text-white rounded-xl px-4 py-3 w-28 outline-none focus:border-indigo-500 transition-all text-sm font-bold placeholder:text-slate-600"
                                       value={walletAmountToUse || ''}
                                       onChange={e => setWalletAmountToUse(e.target.value)}
@@ -1047,10 +1060,16 @@ const Cart = () => {
                         <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
                           <button onClick={() => setCheckoutStep(1)} className="px-6 py-3 rounded-xl text-slate-700 font-bold uppercase tracking-[0.2em] text-[10px] hover:bg-slate-50 transition-all border rounded-full">Go Back</button>
                           <button 
+                            disabled={isOrdering}
                             onClick={handlePlaceOrder}
-                            className="w-full sm:w-auto px-10 py-4 bg-emerald-600 text-white rounded-xl font-bold uppercase tracking-[0.25em] text-xs shadow-lg shadow-emerald-100 active:scale-95 transition-all hover:bg-slate-900 group"
+                            className="w-full sm:w-auto px-10 py-4 bg-emerald-600 text-white rounded-xl font-bold uppercase tracking-[0.25em] text-xs shadow-lg shadow-emerald-100 active:scale-95 transition-all hover:bg-slate-900 group disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            Complete Order • ₹{total.toLocaleString()}
+                            {isOrdering ? (
+                              <div className="flex items-center gap-2">
+                                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                Processing...
+                              </div>
+                            ) : `Complete Order • ₹${total.toLocaleString()}`}
                           </button>
                         </div>
                       </div>
@@ -1078,7 +1097,7 @@ const Cart = () => {
                 <form onSubmit={handleSaveAddress} className="space-y-4">
                   <div className="space-y-1">
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-4">Full Name</p>
-                     <input className="checkout-input-v2" placeholder="John Doe" value={newAddress.fullName} onChange={e => setNewAddress({...newAddress, fullName: e.target.value})} required/>
+                     <input className="checkout-input-v2" placeholder="Full Name" value={newAddress.fullName} onChange={e => setNewAddress({...newAddress, fullName: e.target.value})} required/>
                   </div>
                   <div className="space-y-1">
                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-4">Contact Number</p>
@@ -1091,7 +1110,7 @@ const Cart = () => {
                     </div>
                     <div className="space-y-1">
                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-4">City / Area</p>
-                       <input className="checkout-input-v2" placeholder="Sirsa" value={newAddress.city} onChange={e => setNewAddress({...newAddress, city: e.target.value})} required/>
+                       <input className="checkout-input-v2" placeholder="City / State" value={newAddress.city} onChange={e => setNewAddress({...newAddress, city: e.target.value})} required/>
                     </div>
                   </div>
                   <div className="space-y-1">
