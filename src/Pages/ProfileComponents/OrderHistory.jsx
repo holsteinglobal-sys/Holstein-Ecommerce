@@ -576,7 +576,7 @@ const OrderHistory = () => {
                                     onClick={() => handleCancelOrder(selectedOrder)}
                                     className="py-3 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors text-sm"
                                 >
-                                    Cancel
+                                    Cancel Order
                                 </button>
                             )}
                             <button
