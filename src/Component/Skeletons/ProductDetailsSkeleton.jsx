@@ -2,7 +2,7 @@ import React from "react";
 
 const ProductDetailsSkeleton = () => {
   return (
-    <div className="container mx-auto px-4 pt-20 md:pt-32 pb-20">
+    <div className="container mx-auto px-4 pt-5 md:pt-8 pb-20">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
 
         {/* LEFT - Image Gallery Skeleton */}
