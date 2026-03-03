@@ -26,7 +26,7 @@ const Address = () => {
         </div>
         <div>
           <h4 className="font-bold text-gray-900 text-lg">Connect with Us</h4>
-          <p className="text-gray-600 mt-1">1800-123-4567 (Toll-Free)</p>
+          <p className="text-gray-600 mt-1">1800-296-5555</p>
         
         </div>
       </div>
