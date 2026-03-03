@@ -100,7 +100,7 @@ const Career = () => {
                 <input
                   type="text"
                   name="fullName"
-                  placeholder="e.g. Rahul Sharma"
+                  placeholder="full name"
                   value={form.fullName}
                   onChange={handleChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-gray-800"
@@ -113,7 +113,7 @@ const Career = () => {
                 <input
                   type="email"
                   name="email"
-                  placeholder="rahul@example.com"
+                  placeholder="name@example.com"
                   value={form.email}
                   onChange={handleChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-gray-800"
@@ -139,7 +139,7 @@ const Career = () => {
                 <input
                   type="text"
                   name="position"
-                  placeholder="e.g. Area Manager"
+                  placeholder="sales / Area "
                   value={form.position}
                   onChange={handleChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-gray-800"
@@ -152,7 +152,7 @@ const Career = () => {
                 <input
                   type="text"
                   name="city"
-                  placeholder="e.g. Ludhiana"
+                  placeholder="location"
                   value={form.city}
                   onChange={handleChange}
                   className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-medium text-gray-800"
